@@ -1,97 +1,73 @@
-# Frontend
+# React + TypeScript + Vite
 
-React + Vite + TypeScript web application for ShareSpace.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Overview
+Currently, two official plugins are available:
 
-This directory contains the frontend web application built with:
-- **React 18** - UI framework
-- **Vite** - Fast build tool and dev server
-- **TypeScript** - Type-safe development
-- **Responsive Design** - Mobile-first approach
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Project Structure
+## React Compiler
 
-```
-frontend/
-├── src/
-│   ├── components/      # Reusable React components
-│   ├── pages/          # Page-level components
-│   ├── hooks/          # Custom React hooks
-│   ├── services/       # API services and external integrations
-│   ├── styles/         # Global styles and utilities
-│   ├── types/          # TypeScript types and interfaces
-│   ├── App.tsx         # Root component
-│   └── main.tsx        # Entry point
-├── public/             # Static assets
-├── package.json        # Dependencies and scripts
-├── tsconfig.json       # TypeScript configuration
-├── vite.config.ts      # Vite configuration
-└── index.html          # HTML entry point
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Getting Started
+## Expanding the ESLint configuration
 
-### Install Dependencies
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```bash
-npm install
-```
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-### Development Server
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-```bash
-npm run dev
-```
-
-Server runs at `http://localhost:5173`
-
-### Build for Production
-
-```bash
-npm run build
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-Output goes to `dist/`
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-### Preview Production Build
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-```bash
-npm run preview
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-### Type Checking
-
-```bash
-npm run type-check
-```
-
-## Environment Variables
-
-Create a `.env` file in the frontend directory:
-
-```env
-VITE_API_BASE_URL=http://localhost:3000
-VITE_AWS_REGION=us-east-1
-```
-
-## Building & Deployment
-
-Frontend assets are built and deployed to AWS CloudFront/S3 as part of the infrastructure deployment. See the infrastructure README for deployment details.
-
-## Best Practices
-
-- Keep components small and focused
-- Use TypeScript for type safety
-- Follow the existing folder structure
-- Write meaningful component names
-- Use CSS modules or Tailwind for styling
-- Keep API logic in services/
-
-## Testing
-
-(To be configured)
-
-## Contributing
-
-See [../docs/CONTRIBUTING.md](../docs/CONTRIBUTING.md)
