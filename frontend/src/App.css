@@ -23,6 +23,27 @@
   letter-spacing: 0.5px;
 }
 
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.nav-link {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .logout-button {
   padding: 10px 20px;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);

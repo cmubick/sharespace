@@ -59,7 +59,7 @@ VITE_PASSWORD_HINT=Vladamir's nickname
 2. **Access the app:**
    - Navigate to `http://localhost:5173/`
    - You'll be redirected to `/login`
-   - Enter the password (default: `vladimir`)
+   - Enter the password (default: ` `)
    - Click "Enter" to access the app
 
 3. **Logout:**

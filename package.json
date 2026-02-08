@@ -1,0 +1,27 @@
+{
+  "name": "sharespace",
+  "version": "0.1.0",
+  "description": "A modern AWS-hosted media sharing web application",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "infrastructure"
+  ],
+  "scripts": {
+    "install-all": "npm install && npm install -w frontend && npm install -w backend && npm install -w infrastructure",
+    "build": "npm run build -w frontend && npm run build -w backend && npm run build -w infrastructure",
+    "dev": "npm run dev -w frontend",
+    "type-check": "npm run type-check -w frontend && npm run type-check -w backend && npm run type-check -w infrastructure",
+    "deploy": "npm run build -w infrastructure && cdk deploy --cwd infrastructure"
+  },
+  "keywords": [
+    "media-sharing",
+    "aws",
+    "react",
+    "lambda",
+    "cdk"
+  ],
+  "author": "",
+  "license": "MIT"
+}
