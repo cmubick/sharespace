@@ -4,16 +4,16 @@ import * as iam from 'aws-cdk-lib/aws-iam'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
-export interface DatabaseStackProps extends cdk.StackProps {
+export interface DatabaseStackProps {
   config: EnvironmentConfig
 }
 
-export class DatabaseStack extends cdk.Stack {
+export class DatabaseStack extends Construct {
   public readonly mediaTable: dynamodb.Table
   public readonly usersTable: dynamodb.Table
 
   constructor(scope: Construct, id: string, props: DatabaseStackProps) {
-    super(scope, id, props)
+    super(scope, id)
 
     const { config } = props
 
@@ -90,29 +90,6 @@ export class DatabaseStack extends cdk.Stack {
         name: 'email',
         type: dynamodb.AttributeType.STRING,
       },
-    })
-
-    // Outputs
-    new cdk.CfnOutput(this, 'MediaTableName', {
-      value: this.mediaTable.tableName,
-      description: 'DynamoDB table for media metadata',
-      exportName: `${config.projectName}-media-table`,
-    })
-
-    new cdk.CfnOutput(this, 'MediaTableArn', {
-      value: this.mediaTable.tableArn,
-      exportName: `${config.projectName}-media-table-arn`,
-    })
-
-    new cdk.CfnOutput(this, 'UsersTableName', {
-      value: this.usersTable.tableName,
-      description: 'DynamoDB table for user data',
-      exportName: `${config.projectName}-users-table`,
-    })
-
-    new cdk.CfnOutput(this, 'UsersTableArn', {
-      value: this.usersTable.tableArn,
-      exportName: `${config.projectName}-users-table-arn`,
     })
   }
 

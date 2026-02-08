@@ -6,7 +6,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
-export interface CdnStackProps extends cdk.StackProps {
+export interface CdnStackProps {
   config: EnvironmentConfig
   frontendBucket: s3.Bucket
   mediaBucket: s3.Bucket
@@ -14,12 +14,12 @@ export interface CdnStackProps extends cdk.StackProps {
   mediaOai: cloudfront.OriginAccessIdentity
 }
 
-export class CdnStack extends cdk.Stack {
+export class CdnStack extends Construct {
   public readonly frontendDistribution: cloudfront.Distribution
   public readonly mediaDistribution: cloudfront.Distribution
 
   constructor(scope: Construct, id: string, props: CdnStackProps) {
-    super(scope, id, props)
+    super(scope, id)
 
     const { config, frontendBucket, mediaBucket, frontendOai, mediaOai } = props
 
@@ -106,33 +106,17 @@ export class CdnStack extends cdk.Stack {
       exportName: `${config.projectName}-frontend-cdn-domain`,
     })
 
-    new cdk.CfnOutput(this, 'FrontendDistributionUrl', {
-      value: `https://${this.frontendDistribution.distributionDomainName}`,
-      description: 'CloudFront URL for frontend',
-    })
-
-    if (config.domainName) {
-      new cdk.CfnOutput(this, 'FrontendCustomDomain', {
-        value: config.domainName,
-        description: 'Custom domain for frontend (requires DNS CNAME configuration)',
-      })
-    }
-
-    new cdk.CfnOutput(this, 'MediaDistributionDomainName', {
-      value: this.mediaDistribution.distributionDomainName,
-      description: 'CloudFront distribution domain for media delivery',
-      exportName: `${config.projectName}-media-cdn-domain`,
-    })
-
-    new cdk.CfnOutput(this, 'MediaDistributionUrl', {
-      value: `https://${this.mediaDistribution.distributionDomainName}`,
-      description: 'CloudFront URL for media delivery',
-    })
+    // Media distribution domain for outputs
+    this.mediaDistribution.distributionDomainName
   }
 
   private createLogBucket(bucketName: string): s3.Bucket {
+    // Get the root stack to access account information
+    const stack = cdk.Stack.of(this)
+    const accountId = stack.account || 'unknown'
+    
     return new s3.Bucket(this, `LogBucket-${bucketName}`, {
-      bucketName: `${bucketName}-${this.account || 'logs'}`,
+      bucketName: `${bucketName}-${accountId}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,

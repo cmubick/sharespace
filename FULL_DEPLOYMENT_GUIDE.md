@@ -47,7 +47,7 @@ Create `.env.local` files in each workspace:
 **Frontend** (`frontend/.env.local`):
 ```env
 # Authentication
-VITE_APP_PASSWORD=vladimir
+VITE_APP_PASSWORD=shitbird
 VITE_PASSWORD_HINT=Vladamir's nickname
 
 # API Configuration (set after infrastructure deployment)
@@ -259,7 +259,7 @@ https://your-cloudfront-domain.cloudfront.net
 
 ### 3. Test Login
 
-- Password: `vladimir` (or your configured password)
+- Password: `shitbird` (or your configured password)
 - Hint: "Vladamir's nickname" (or your configured hint)
 
 ### 4. Test Upload

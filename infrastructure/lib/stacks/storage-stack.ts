@@ -5,18 +5,18 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
-export interface StorageStackProps extends cdk.StackProps {
+export interface StorageStackProps {
   config: EnvironmentConfig
 }
 
-export class StorageStack extends cdk.Stack {
+export class StorageStack extends Construct {
   public readonly frontendBucket: s3.Bucket
   public readonly mediaBucket: s3.Bucket
   public readonly frontendOai: cloudfront.OriginAccessIdentity
   public readonly mediaOai: cloudfront.OriginAccessIdentity
 
   constructor(scope: Construct, id: string, props: StorageStackProps) {
-    super(scope, id, props)
+    super(scope, id)
 
     const { config } = props
 
@@ -74,29 +74,6 @@ export class StorageStack extends cdk.Stack {
           maxAge: 3000,
         },
       ],
-    })
-
-    // Outputs
-    new cdk.CfnOutput(this, 'FrontendBucketName', {
-      value: this.frontendBucket.bucketName,
-      description: 'S3 bucket for frontend hosting',
-      exportName: `${config.projectName}-frontend-bucket`,
-    })
-
-    new cdk.CfnOutput(this, 'FrontendBucketArn', {
-      value: this.frontendBucket.bucketArn,
-      exportName: `${config.projectName}-frontend-bucket-arn`,
-    })
-
-    new cdk.CfnOutput(this, 'MediaBucketName', {
-      value: this.mediaBucket.bucketName,
-      description: 'S3 bucket for media uploads',
-      exportName: `${config.projectName}-media-bucket`,
-    })
-
-    new cdk.CfnOutput(this, 'MediaBucketArn', {
-      value: this.mediaBucket.bucketArn,
-      exportName: `${config.projectName}-media-bucket-arn`,
     })
   }
 

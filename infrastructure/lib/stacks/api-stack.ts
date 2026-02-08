@@ -5,16 +5,16 @@ import * as logs from 'aws-cdk-lib/aws-logs'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
-export interface ApiStackProps extends cdk.StackProps {
+export interface ApiStackProps {
   config: EnvironmentConfig
 }
 
-export class ApiStack extends cdk.Stack {
+export class ApiStack extends Construct {
   public readonly api: apigateway.RestApi
   public readonly lambdaExecutionRole: iam.Role
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
-    super(scope, id, props)
+    super(scope, id)
 
     const { config } = props
 
@@ -101,25 +101,6 @@ export class ApiStack extends cdk.Stack {
     this.addPlaceholderIntegration(profileResource, 'GET', '/user/profile')
     this.addPlaceholderIntegration(profileResource, 'PUT', '/user/profile')
     this.addPlaceholderIntegration(userResource, 'DELETE', '/user')
-
-    // Outputs
-    new cdk.CfnOutput(this, 'ApiEndpoint', {
-      value: this.api.url,
-      description: 'API Gateway endpoint URL',
-      exportName: `${config.projectName}-api-endpoint`,
-    })
-
-    new cdk.CfnOutput(this, 'ApiId', {
-      value: this.api.restApiId,
-      description: 'API Gateway REST API ID',
-      exportName: `${config.projectName}-api-id`,
-    })
-
-    new cdk.CfnOutput(this, 'LambdaExecutionRoleArn', {
-      value: this.lambdaExecutionRole.roleArn,
-      description: 'Lambda execution role ARN',
-      exportName: `${config.projectName}-lambda-role-arn`,
-    })
   }
 
   /**
