@@ -42,8 +42,8 @@ Dark mode styling for the login page with:
 Create a `.env.local` file in the frontend directory:
 
 ```env
-# Password for the gate (default: "vladimir")
-VITE_APP_PASSWORD=vladimir
+# Password for the gate (default: "shitbird")
+VITE_APP_PASSWORD=shitbird
 
 # Hint text shown to users (default: "Vladamir's nickname")
 VITE_PASSWORD_HINT=Vladamir's nickname

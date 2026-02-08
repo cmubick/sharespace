@@ -7,7 +7,7 @@ const LoginPage = () => {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const correctPassword = import.meta.env.VITE_APP_PASSWORD || 'vladimir'
+  const correctPassword = import.meta.env.VITE_APP_PASSWORD || 'shitbird'
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
