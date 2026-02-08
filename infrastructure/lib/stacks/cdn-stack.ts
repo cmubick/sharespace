@@ -1,0 +1,125 @@
+import * as cdk from 'aws-cdk-lib'
+import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
+import * as cloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins'
+import { Construct } from 'constructs'
+import { EnvironmentConfig } from '../config'
+
+export interface CdnStackProps extends cdk.StackProps {
+  config: EnvironmentConfig
+  frontendBucket: s3.Bucket
+  mediaBucket: s3.Bucket
+  frontendOai: cloudfront.OriginAccessIdentity
+  mediaOai: cloudfront.OriginAccessIdentity
+}
+
+export class CdnStack extends cdk.Stack {
+  public readonly frontendDistribution: cloudfront.Distribution
+  public readonly mediaDistribution: cloudfront.Distribution
+
+  constructor(scope: Construct, id: string, props: CdnStackProps) {
+    super(scope, id, props)
+
+    const { config, frontendBucket, mediaBucket, frontendOai, mediaOai } = props
+
+    // CloudFront distribution for frontend
+    this.frontendDistribution = new cloudfront.Distribution(
+      this,
+      'FrontendDistribution',
+      {
+        comment: `${config.projectName} frontend distribution`,
+        defaultBehavior: {
+          origin: new cloudfrontOrigins.S3Origin(frontendBucket, {
+            originAccessIdentity: frontendOai,
+          }),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          compress: true,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
+        defaultRootObject: 'index.html',
+        errorResponses: [
+          {
+            httpStatus: 403,
+            responseHttpStatus: 200,
+            responsePagePath: '/index.html',
+            ttl: cdk.Duration.minutes(0),
+          },
+          {
+            httpStatus: 404,
+            responseHttpStatus: 404,
+            responsePagePath: '/404.html',
+            ttl: cdk.Duration.minutes(5),
+          },
+        ],
+        priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
+        enableLogging: true,
+        logBucket: this.createLogBucket(`${config.projectName}-cf-logs`),
+        logIncludesCookies: false,
+      }
+    )
+
+    // CloudFront distribution for media delivery
+    this.mediaDistribution = new cloudfront.Distribution(
+      this,
+      'MediaDistribution',
+      {
+        comment: `${config.projectName} media distribution`,
+        defaultBehavior: {
+          origin: new cloudfrontOrigins.S3Origin(mediaBucket, {
+            originAccessIdentity: mediaOai,
+          }),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+          compress: true,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          originRequestPolicy:
+            cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN,
+        },
+        priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
+        enableLogging: true,
+        logBucket: this.createLogBucket(`${config.projectName}-cf-media-logs`),
+      }
+    )
+
+    // Outputs
+    new cdk.CfnOutput(this, 'FrontendDistributionDomainName', {
+      value: this.frontendDistribution.distributionDomainName,
+      description: 'CloudFront distribution domain for frontend',
+      exportName: `${config.projectName}-frontend-cdn-domain`,
+    })
+
+    new cdk.CfnOutput(this, 'FrontendDistributionUrl', {
+      value: `https://${this.frontendDistribution.distributionDomainName}`,
+      description: 'CloudFront URL for frontend',
+    })
+
+    new cdk.CfnOutput(this, 'MediaDistributionDomainName', {
+      value: this.mediaDistribution.distributionDomainName,
+      description: 'CloudFront distribution domain for media delivery',
+      exportName: `${config.projectName}-media-cdn-domain`,
+    })
+
+    new cdk.CfnOutput(this, 'MediaDistributionUrl', {
+      value: `https://${this.mediaDistribution.distributionDomainName}`,
+      description: 'CloudFront URL for media delivery',
+    })
+  }
+
+  private createLogBucket(bucketName: string): s3.Bucket {
+    return new s3.Bucket(this, `LogBucket-${bucketName}`, {
+      bucketName: `${bucketName}-${this.account || 'logs'}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
+      lifecycleRules: [
+        {
+          id: 'DeleteOldLogs',
+          expiration: cdk.Duration.days(90),
+        },
+      ],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    })
+  }
+}
