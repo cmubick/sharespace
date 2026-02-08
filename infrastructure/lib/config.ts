@@ -31,7 +31,7 @@ export const getConfig = (env: string): EnvironmentConfig => {
     env: isDev ? 'dev' : 'prod',
     region: process.env.AWS_REGION || 'us-east-1',
     projectName,
-    domainName: isDev ? undefined : 'sharespace.example.com',
+    domainName: isDev ? undefined : 'itsonlycastlesburning.com',
     frontend: {
       bucketName: `${projectName}-frontend-${envSuffix}`,
     },

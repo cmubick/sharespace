@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import * as cloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins'
+import * as acm from 'aws-cdk-lib/aws-certificatemanager'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
@@ -21,6 +22,20 @@ export class CdnStack extends cdk.Stack {
     super(scope, id, props)
 
     const { config, frontendBucket, mediaBucket, frontendOai, mediaOai } = props
+
+    // Import existing ACM certificate if domain is configured and ARN is provided (prod only)
+    const certificateArn = process.env.ACM_CERTIFICATE_ARN
+    let certificate: acm.ICertificate | undefined
+    let domainNames: string[] | undefined
+    
+    if (config.domainName && certificateArn) {
+      certificate = acm.Certificate.fromCertificateArn(
+        this,
+        'ExistingCertificate',
+        certificateArn
+      )
+      domainNames = [config.domainName, `*.${config.domainName}`]
+    }
 
     // CloudFront distribution for frontend
     this.frontendDistribution = new cloudfront.Distribution(
@@ -56,6 +71,8 @@ export class CdnStack extends cdk.Stack {
         enableLogging: true,
         logBucket: this.createLogBucket(`${config.projectName}-cf-logs`),
         logIncludesCookies: false,
+        domainNames: domainNames,
+        certificate: certificate,
       }
     )
 
@@ -93,6 +110,13 @@ export class CdnStack extends cdk.Stack {
       value: `https://${this.frontendDistribution.distributionDomainName}`,
       description: 'CloudFront URL for frontend',
     })
+
+    if (config.domainName) {
+      new cdk.CfnOutput(this, 'FrontendCustomDomain', {
+        value: config.domainName,
+        description: 'Custom domain for frontend (requires DNS CNAME configuration)',
+      })
+    }
 
     new cdk.CfnOutput(this, 'MediaDistributionDomainName', {
       value: this.mediaDistribution.distributionDomainName,
