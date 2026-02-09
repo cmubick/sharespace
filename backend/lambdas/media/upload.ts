@@ -29,6 +29,7 @@ interface UploadRequest {
   filename: string
   fileType: string
   uploaderName: string
+  userId: string
   caption?: string
   year?: number
 }
@@ -42,7 +43,8 @@ interface UploadResponse {
 }
 
 interface MediaMetadata {
-  id: string
+  mediaId: string
+  userId: string
   filename: string
   uploader: string
   uploadTimestamp: string
@@ -85,6 +87,7 @@ export const handler = async (
       'filename',
       'fileType',
       'uploaderName',
+      'userId',
     ])
     if (missingFields.length > 0) {
       return createErrorResponse(
@@ -93,7 +96,7 @@ export const handler = async (
       )
     }
 
-    const { filename, fileType, uploaderName, caption, year } = uploadRequest
+    const { filename, fileType, uploaderName, userId, caption, year } = uploadRequest
 
     // Validate filename
     if (typeof filename !== 'string' || filename.trim().length === 0) {
@@ -158,7 +161,8 @@ export const handler = async (
 
     // Store metadata in DynamoDB
     const mediaMetadata: MediaMetadata = {
-      id: mediaId,
+      mediaId,
+      userId,
       filename,
       uploader: uploaderName,
       uploadTimestamp: timestamp,

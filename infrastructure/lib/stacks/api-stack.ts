@@ -84,12 +84,13 @@ export class ApiStack extends Construct {
     })
 
     // Create Lambda functions for handlers
-    const backendLambdaPath = path.resolve(path.join(__dirname, '../../../..', 'backend/dist/lambdas/media'))
+    // Use the full dist directory which includes node_modules and compiled code
+    const backendDistPath = path.resolve(path.join(__dirname, '../../../..', 'backend/dist'))
     
     const uploadHandler = new lambda.Function(this, 'UploadHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'upload.handler',
-      code: lambda.Code.fromAsset(backendLambdaPath),
+      handler: 'lambdas/media/upload.handler',
+      code: lambda.Code.fromAsset(backendDistPath, { exclude: ['*.ts', '*.d.ts', '*.map'] }),
       role: this.lambdaExecutionRole,
       environment: {
         MEDIA_BUCKET: mediaBucket.bucketName,
@@ -101,8 +102,8 @@ export class ApiStack extends Construct {
 
     const listHandler = new lambda.Function(this, 'ListHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'list.handler',
-      code: lambda.Code.fromAsset(backendLambdaPath),
+      handler: 'lambdas/media/list.handler',
+      code: lambda.Code.fromAsset(backendDistPath),
       role: this.lambdaExecutionRole,
       environment: {
         MEDIA_TABLE: mediaTable.tableName,
