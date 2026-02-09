@@ -37,7 +37,7 @@ const LoginPage = () => {
               placeholder="Enter password"
               autoFocus
             />
-            <p className="hint">Hint: {import.meta.env.VITE_PASSWORD_HINT || "Vladamir's nickname"}</p>
+            <p className="hint">Hint: {import.meta.env.VITE_PASSWORD_HINT || "Vladimir's nickname"}</p>
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" className="login-button">

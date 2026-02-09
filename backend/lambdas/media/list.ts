@@ -3,15 +3,17 @@ import {
   APIGatewayProxyResult,
   Context,
 } from 'aws-lambda'
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { createErrorResponse, createSuccessResponse } from '../../shared/utils'
 
-interface MediaItem {
-  id: string
-  name: string
-  type: 'image' | 'video' | 'document'
-  size: number
-  uploadedAt: string
-  url: string
-}
+const dynamoDb = DynamoDBDocumentClient.from(
+  new DynamoDBClient({
+    region: process.env.AWS_REGION || 'us-west-2',
+  })
+)
+
+const MEDIA_TABLE = process.env.MEDIA_TABLE || 'sharespace-media-table'
 
 /**
  * List user's media files
@@ -30,10 +32,14 @@ export const handler = async (
       queryParams: event.queryStringParameters,
     })
 
-    // Get userId from path or query params (in real implementation, from JWT)
-    const userId = event.pathParameters?.userId || 'user123'
+    // Get userId from query params (in real implementation, from JWT)
+    const userId = event.queryStringParameters?.userId
     const page = parseInt(event.queryStringParameters?.page || '1')
-    const limit = parseInt(event.queryStringParameters?.limit || '20')
+    const limit = parseInt(event.queryStringParameters?.limit || '50')
+
+    if (!userId) {
+      return createErrorResponse(new Error('userId is required'), 400)
+    }
 
     // Validate pagination params
     if (page < 1 || limit < 1 || limit > 100) {
@@ -56,59 +62,44 @@ export const handler = async (
       limit,
     })
 
-    // TODO: Implement actual DynamoDB query
-    // Query media table with userId as partition key
-    // Use pagination with startKey and limit
-
-    // Placeholder response
-    const mockMedia: MediaItem[] = [
-      {
-        id: 'media-001',
-        name: 'vacation-photo.jpg',
-        type: 'image',
-        size: 2048000,
-        uploadedAt: new Date(Date.now() - 86400000).toISOString(),
-        url: 'https://sharespace-media.s3.amazonaws.com/user123/media-001',
-      },
-      {
-        id: 'media-002',
-        name: 'family-video.mp4',
-        type: 'video',
-        size: 524288000,
-        uploadedAt: new Date(Date.now() - 172800000).toISOString(),
-        url: 'https://sharespace-media.s3.amazonaws.com/user123/media-002',
-      },
-    ]
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({
-        items: mockMedia,
-        pagination: {
-          page,
-          limit,
-          total: 2,
-          totalPages: 1,
+    const queryResult = await dynamoDb.send(
+      new QueryCommand({
+        TableName: MEDIA_TABLE,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId,
         },
-      }),
-    }
+        Limit: limit,
+        ScanIndexForward: false,
+      })
+    )
+
+    const items = (queryResult.Items || []).map((item: any) => ({
+      id: item.mediaId,
+      filename: item.filename,
+      uploader: item.uploader,
+      uploadTimestamp: item.uploadTimestamp || item.uploadedAt,
+      mediaType: item.mediaType,
+      s3Key: item.s3Key,
+      caption: item.caption,
+      year: item.year,
+    }))
+
+    return createSuccessResponse({
+      items,
+      pagination: {
+        page,
+        limit,
+        total: items.length,
+        totalPages: 1,
+      },
+    })
   } catch (error) {
     console.error('List media error:', error)
 
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({
-        error: 'Failed to list media',
-        requestId: context.awsRequestId,
-      }),
-    }
+    return createErrorResponse(
+      error instanceof Error ? error : new Error('Failed to list media'),
+      500
+    )
   }
 }

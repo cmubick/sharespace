@@ -5,7 +5,7 @@ This ShareSpace frontend includes a password-protected login gate that must be p
 ## Features
 
 - ✅ Login screen with password prompt
-- ✅ Hint text display: "Vladamir's nickname"
+- ✅ Hint text display: "Vladimir's nickname"
 - ✅ Password stored in environment variables (`VITE_APP_PASSWORD`)
 - ✅ localStorage-based session management
 - ✅ Protected routes using React Router
@@ -16,7 +16,9 @@ This ShareSpace frontend includes a password-protected login gate that must be p
 ## Components
 
 ### `/src/pages/LoginPage.tsx`
+
 Main login page component with:
+
 - Password input field
 - Hint text display
 - Error message handling
@@ -24,13 +26,17 @@ Main login page component with:
 - Redirect to home on correct password
 
 ### `/src/components/ProtectedRoute.tsx`
+
 Route wrapper component that:
+
 - Checks localStorage for `sharespace_access` flag
 - Redirects unauthenticated users to `/login`
 - Wraps protected routes
 
 ### `/src/styles/LoginPage.css`
+
 Dark mode styling for the login page with:
+
 - Gradient backgrounds
 - Smooth transitions and hover effects
 - Mobile responsive layout
@@ -39,19 +45,21 @@ Dark mode styling for the login page with:
 ## Configuration
 
 ### Environment Variables
+
 Create a `.env.local` file in the frontend directory:
 
 ```env
 # Password for the gate (default: "shitbird")
 VITE_APP_PASSWORD=shitbird
 
-# Hint text shown to users (default: "Vladamir's nickname")
-VITE_PASSWORD_HINT=Vladamir's nickname
+# Hint text shown to users (default: "Vladimir's nickname")
+VITE_PASSWORD_HINT=Vladimir's nickname
 ```
 
 ## Usage
 
 1. **Start the dev server:**
+
    ```bash
    npm run dev
    ```
@@ -87,7 +95,7 @@ VITE_PASSWORD_HINT=Vladamir's nickname
 
 ## File Structure
 
-```
+```text
 frontend/
 ├── src/
 │   ├── pages/

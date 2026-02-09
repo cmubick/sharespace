@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getMediaUrl } from '../services/api'
 import '../styles/MediaViewer.css'
 
 interface MediaItem {
@@ -38,10 +39,7 @@ const MediaViewer = ({ media, onClose }: MediaViewerProps) => {
     }
   }, [])
 
-  const getMediaUrl = (s3Key: string) => {
-    // TODO: Replace with actual S3 CloudFront URL
-    return `https://via.placeholder.com/800x600?text=${encodeURIComponent(s3Key)}`
-  }
+  const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
 
   const getMediaIcon = (mediaType: string) => {
     if (mediaType.startsWith('image/')) return '🖼️'
@@ -76,7 +74,7 @@ const MediaViewer = ({ media, onClose }: MediaViewerProps) => {
         <div className="modal-media">
           {media.mediaType.startsWith('image/') ? (
             <img
-              src={getMediaUrl(media.s3Key)}
+              src={resolveMediaUrl(media.s3Key)}
               alt={media.filename}
               className="modal-image"
             />
@@ -145,7 +143,7 @@ const MediaViewer = ({ media, onClose }: MediaViewerProps) => {
           {/* Action Buttons */}
           <div className="modal-actions">
             <a
-              href={getMediaUrl(media.s3Key)}
+              href={resolveMediaUrl(media.s3Key)}
               download={media.filename}
               className="btn-download"
               target="_blank"

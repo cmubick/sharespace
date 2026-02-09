@@ -160,12 +160,13 @@ export const handler = async (
     })
 
     // Store metadata in DynamoDB
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: MediaMetadata & { uploadedAt: string } = {
       mediaId,
       userId,
       filename,
       uploader: uploaderName,
       uploadTimestamp: timestamp,
+      uploadedAt: timestamp,
       mediaType: fileType,
       s3Key,
       ...(caption && { caption }),

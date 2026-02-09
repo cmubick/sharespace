@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import MediaViewer from '../components/MediaViewer.tsx'
+import { getApiUrl, getMediaUrl } from '../services/api'
+import { getUserId } from '../services/auth'
 import '../styles/GalleryPage.css'
 
 interface MediaItem {
@@ -69,55 +71,17 @@ const GalleryPage = () => {
       setLoading(true)
       setError('')
 
-      // TODO: Replace with actual API endpoint
-      // For now, use mock data to demonstrate functionality
-      const mockData: MediaItem[] = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          filename: 'vacation-2024.jpg',
-          uploader: 'John Doe',
-          uploadTimestamp: new Date().toISOString(),
-          mediaType: 'image/jpeg',
-          s3Key: 'media/550e8400-e29b-41d4-a716-446655440000.jpg',
-          caption: 'Summer vacation at the beach',
-          year: 2024,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          filename: 'family-photo.jpg',
-          uploader: 'Jane Smith',
-          uploadTimestamp: new Date().toISOString(),
-          mediaType: 'image/jpeg',
-          s3Key: 'media/550e8400-e29b-41d4-a716-446655440001.jpg',
-          caption: 'Family gathering',
-          year: 2023,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          filename: 'old-photo.png',
-          uploader: 'Mike Johnson',
-          uploadTimestamp: new Date().toISOString(),
-          mediaType: 'image/png',
-          s3Key: 'media/550e8400-e29b-41d4-a716-446655440002.png',
-          year: 2022,
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440003',
-          filename: 'undated-photo.gif',
-          uploader: 'Sarah Lee',
-          uploadTimestamp: new Date().toISOString(),
-          mediaType: 'image/gif',
-          s3Key: 'media/550e8400-e29b-41d4-a716-446655440003.gif',
-          caption: 'Funny moment',
-        },
-      ]
+      const response = await fetch(
+        `${getApiUrl('/media')}?userId=${encodeURIComponent(getUserId())}`
+      )
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}))
+        throw new Error(errorBody.error || 'Failed to fetch media')
+      }
+      const data = await response.json()
+      const items = (data.items || []) as MediaItem[]
 
-      // Real API call would be:
-      // const response = await fetch('/api/media/list')
-      // if (!response.ok) throw new Error('Failed to fetch media')
-      // const data = await response.json()
-
-      groupMediaByYear(mockData)
+      groupMediaByYear(items)
     } catch (err) {
       console.error('Failed to load media:', err)
       setError('Failed to load gallery. Please try again.')
@@ -162,8 +126,7 @@ const GalleryPage = () => {
 
   // Generate image URL from S3 key
   const getImageUrl = (s3Key: string) => {
-    // TODO: Replace with actual S3 CloudFront URL
-    return `https://via.placeholder.com/300x300?text=${encodeURIComponent(s3Key)}`
+    return getMediaUrl(s3Key)
   }
 
   const getMediaIcon = (mediaType: string) => {

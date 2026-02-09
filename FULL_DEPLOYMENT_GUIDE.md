@@ -5,6 +5,7 @@ Complete step-by-step guide for deploying ShareSpace frontend, backend, and infr
 ## Overview
 
 ShareSpace is a monorepo with three workspaces:
+
 - **Frontend**: React/TypeScript/Vite
 - **Backend**: Lambda functions/TypeScript
 - **Infrastructure**: AWS CDK (TypeScript)
@@ -45,10 +46,11 @@ cdk --version
 Create `.env.local` files in each workspace:
 
 **Frontend** (`frontend/.env.local`):
+
 ```env
 # Authentication
 VITE_APP_PASSWORD=shitbird
-VITE_PASSWORD_HINT=Vladamir's nickname
+VITE_PASSWORD_HINT=Vladimir's nickname
 
 # API Configuration (set after infrastructure deployment)
 VITE_API_BASE_URL=https://your-api-gateway-url.execute-api.us-west-2.amazonaws.com/prod
@@ -56,6 +58,7 @@ VITE_CLOUDFRONT_URL=https://your-cloudfront-domain.cloudfront.net
 ```
 
 **Backend** (`backend/.env.local`):
+
 ```env
 # AWS Configuration
 AWS_REGION=us-west-2
@@ -67,6 +70,7 @@ MEDIA_TABLE=sharespace-media-table-name
 ```
 
 **Infrastructure** (`infrastructure/.env.local`):
+
 ```env
 ENVIRONMENT=dev
 AWS_REGION=us-west-2
@@ -146,6 +150,7 @@ npm run diff:dev
 ```
 
 You'll see a detailed CloudFormation changeset showing:
+
 - Resources to be created
 - Resources to be modified
 - Resources to be deleted
@@ -169,6 +174,7 @@ npm run deploy:dev
 ```
 
 **Wait for deployment** - This can take 5-15 minutes. CDK will:
+
 - Create S3 buckets for media storage
 - Create DynamoDB table for media metadata
 - Set up API Gateway
@@ -180,7 +186,7 @@ npm run deploy:dev
 
 When deployment completes, CDK prints outputs. **Save these values**:
 
-```
+```text
 ShareSpaceStack.APIEndpoint = https://abc123.execute-api.us-west-2.amazonaws.com/prod
 ShareSpaceStack.CloudFrontURL = https://d123456.cloudfront.net
 ShareSpaceStack.MediaBucketName = sharespace-media-bucket-xyz
@@ -207,6 +213,7 @@ npm run build
 ```
 
 **Upload to S3** (if not automated by CDK):
+
 ```bash
 # Replace with your bucket name
 aws s3 sync dist/ s3://sharespace-frontend-bucket/ --delete
@@ -260,7 +267,7 @@ https://your-cloudfront-domain.cloudfront.net
 ### 3. Test Login
 
 - Password: `shitbird` (or your configured password)
-- Hint: "Vladamir's nickname" (or your configured hint)
+- Hint: "Vladimir's nickname" (or your configured hint)
 
 ### 4. Test Upload
 
@@ -341,6 +348,7 @@ cdk deploy
 ## Troubleshooting
 
 ### CDK Bootstrap Failed
+
 ```bash
 # Check AWS credentials
 aws sts get-caller-identity
@@ -351,6 +359,7 @@ cdk bootstrap
 ```
 
 ### Lambda Deployment Failed
+
 ```bash
 # Check Lambda build
 npm run build -w backend
@@ -362,6 +371,7 @@ ls backend/bundles/
 ```
 
 ### Frontend Not Updating
+
 ```bash
 # Clear CloudFront cache
 aws cloudfront create-invalidation --distribution-id YOUR_ID --paths "/*"
@@ -373,6 +383,7 @@ aws s3 ls s3://your-bucket/
 ```
 
 ### API Gateway 403/401 Errors
+
 ```bash
 # Check Lambda execution role has S3 and DynamoDB permissions
 # Verify API Gateway CORS settings
@@ -469,12 +480,12 @@ After successful deployment:
 
 ## Support & Resources
 
-- **AWS CDK Documentation**: https://docs.aws.amazon.com/cdk/
-- **AWS Lambda**: https://docs.aws.amazon.com/lambda/
-- **AWS API Gateway**: https://docs.aws.amazon.com/apigateway/
-- **AWS CloudFront**: https://docs.aws.amazon.com/cloudfront/
-- **AWS S3**: https://docs.aws.amazon.com/s3/
-- **AWS DynamoDB**: https://docs.aws.amazon.com/dynamodb/
+- **AWS CDK Documentation**: [https://docs.aws.amazon.com/cdk/](https://docs.aws.amazon.com/cdk/)
+- **AWS Lambda**: [https://docs.aws.amazon.com/lambda/](https://docs.aws.amazon.com/lambda/)
+- **AWS API Gateway**: [https://docs.aws.amazon.com/apigateway/](https://docs.aws.amazon.com/apigateway/)
+- **AWS CloudFront**: [https://docs.aws.amazon.com/cloudfront/](https://docs.aws.amazon.com/cloudfront/)
+- **AWS S3**: [https://docs.aws.amazon.com/s3/](https://docs.aws.amazon.com/s3/)
+- **AWS DynamoDB**: [https://docs.aws.amazon.com/dynamodb/](https://docs.aws.amazon.com/dynamodb/)
 
 ## Quick Reference
 
