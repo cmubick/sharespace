@@ -5,16 +5,20 @@
   "main": "lib/sharespace-stack.ts",
   "scripts": {
     "build": "tsc",
+    "prebuild:backend": "cd ../backend && npm run build",
+    "prebuild:frontend": "cd ../frontend && npm run build",
     "watch": "tsc --watch",
     "synth": "cdk synth",
     "deploy": "cdk deploy --all --require-approval never --force",
-    "deploy:dev": "ENVIRONMENT=dev cdk deploy --all --require-approval never --force",
-    "deploy:prod": "ENVIRONMENT=prod cdk deploy --all --require-approval never --force",
+    "deploy:dev": "npm run build:backend && ENVIRONMENT=dev cdk deploy --all --require-approval never --force && ENVIRONMENT=dev ./scripts/update-route53.sh",
+    "deploy:prod": "npm run build:backend && ENVIRONMENT=prod ACM_CERTIFICATE_ARN='arn:aws:acm:us-east-1:427302641213:certificate/a727e6bf-2981-4b88-98a4-3a622094b607' cdk deploy --all --require-approval never --force && ENVIRONMENT=prod ./scripts/update-route53.sh",
+    "build:backend": "cd ../backend && npm run build",
     "destroy": "cdk destroy --all",
     "diff": "cdk diff",
     "diff:dev": "ENVIRONMENT=dev cdk diff",
     "diff:prod": "ENVIRONMENT=prod cdk diff",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "update-dns": "./scripts/update-route53.sh"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

@@ -27,6 +27,8 @@ export class ShareSpaceStack extends cdk.Stack {
     // API Stack - API Gateway and Lambda role
     const apiStack = new ApiStack(this, 'ApiStack', {
       config,
+      mediaBucket: storageStack.mediaBucket,
+      mediaTable: databaseStack.mediaTable,
     })
 
     // CDN Stack - CloudFront distributions

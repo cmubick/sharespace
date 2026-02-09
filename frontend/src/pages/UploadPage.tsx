@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getApiUrl } from '../services/api'
 import '../styles/UploadPage.css'
 
 interface UploadFormData {
@@ -85,7 +86,7 @@ const UploadPage = () => {
   }
 
   const requestPresignedUrl = async (): Promise<PresignedUrlResponse> => {
-    const response = await fetch('/api/media/upload', {
+    const response = await fetch(getApiUrl('/media/upload'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

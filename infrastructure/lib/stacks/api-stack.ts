@@ -1,12 +1,19 @@
 import * as cdk from 'aws-cdk-lib'
 import * as apigateway from 'aws-cdk-lib/aws-apigateway'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as logs from 'aws-cdk-lib/aws-logs'
+import * as path from 'path'
 import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
+import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+
 export interface ApiStackProps {
   config: EnvironmentConfig
+  mediaBucket: s3.Bucket
+  mediaTable: dynamodb.Table
 }
 
 export class ApiStack extends Construct {
@@ -16,7 +23,7 @@ export class ApiStack extends Construct {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id)
 
-    const { config } = props
+    const { config, mediaBucket, mediaTable } = props
 
     // CloudWatch log group for API Gateway
     const logGroup = new logs.LogGroup(this, 'ApiLogGroup', {
@@ -76,7 +83,35 @@ export class ApiStack extends Construct {
       ],
     })
 
-    // API Gateway resources - placeholders for Lambda integration
+    // Create Lambda functions for handlers
+    const backendLambdaPath = path.resolve(path.join(__dirname, '../../../..', 'backend/dist/lambdas/media'))
+    
+    const uploadHandler = new lambda.Function(this, 'UploadHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'upload.handler',
+      code: lambda.Code.fromAsset(backendLambdaPath),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_BUCKET: mediaBucket.bucketName,
+        MEDIA_TABLE: mediaTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+    })
+
+    const listHandler = new lambda.Function(this, 'ListHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'list.handler',
+      code: lambda.Code.fromAsset(backendLambdaPath),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_TABLE: mediaTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+    })
+
+    // API Gateway resources
     const authResource = this.api.root.addResource('auth')
     const loginResource = authResource.addResource('login')
     const signupResource = authResource.addResource('signup')
@@ -86,13 +121,22 @@ export class ApiStack extends Construct {
     const userResource = this.api.root.addResource('user')
     const profileResource = userResource.addResource('profile')
 
-    // Add placeholder integration responses
+    // Add Lambda integrations
+    const uploadIntegration = new apigateway.LambdaIntegration(uploadHandler)
+    const listIntegration = new apigateway.LambdaIntegration(listHandler)
+
+    // Media endpoints
+    mediaResource.addMethod('POST', uploadIntegration, {
+      methodResponses: [{ statusCode: '200' }],
+    })
+    mediaResource.addMethod('GET', listIntegration, {
+      methodResponses: [{ statusCode: '200' }],
+    })
+
+    // Add placeholder integrations for other endpoints
     this.addPlaceholderIntegration(loginResource, 'POST', '/auth/login')
     this.addPlaceholderIntegration(signupResource, 'POST', '/auth/signup')
     this.addPlaceholderIntegration(refreshResource, 'POST', '/auth/refresh')
-
-    this.addPlaceholderIntegration(mediaResource, 'GET', '/media')
-    this.addPlaceholderIntegration(mediaResource, 'POST', '/media/upload')
 
     const mediaIdResource = mediaResource.addResource('{id}')
     this.addPlaceholderIntegration(mediaIdResource, 'GET', '/media/{id}')
