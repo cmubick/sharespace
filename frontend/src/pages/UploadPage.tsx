@@ -85,6 +85,11 @@ const UploadPage = () => {
     }
   }
 
+  const handleDropZoneClick = () => {
+    const fileInput = document.querySelector('.drop-zone .file-input') as HTMLInputElement
+    fileInput?.click()
+  }
+
   const requestPresignedUrl = async (): Promise<PresignedUrlResponse> => {
     const response = await fetch(getApiUrl('/media'), {
       method: 'POST',
@@ -204,6 +209,7 @@ const UploadPage = () => {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={handleDropZoneClick}
         >
           <div className="drop-zone-content">
             <div className="drop-icon">
@@ -233,6 +239,7 @@ const UploadPage = () => {
             onChange={handleFileInputChange}
             accept={ALLOWED_TYPES.join(',')}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            style={{ display: 'none' }}
           />
         </div>
 
