@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiUrl } from '../services/api'
 import { getUserId } from '../services/auth'
@@ -31,6 +31,7 @@ const UploadPage = () => {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'application/pdf']
@@ -87,8 +88,7 @@ const UploadPage = () => {
   }
 
   const handleDropZoneClick = () => {
-    const fileInput = document.querySelector('.drop-zone .file-input') as HTMLInputElement
-    fileInput?.click()
+    fileInputRef.current?.click()
   }
 
   const requestPresignedUrl = async (): Promise<PresignedUrlResponse> => {
@@ -241,7 +241,7 @@ const UploadPage = () => {
             onChange={handleFileInputChange}
             accept={ALLOWED_TYPES.join(',')}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
-            style={{ display: 'none' }}
+            ref={fileInputRef}
           />
         </div>
 
