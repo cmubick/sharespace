@@ -90,7 +90,9 @@ export class ApiStack extends Construct {
     const uploadHandler = new lambda.Function(this, 'UploadHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'lambdas/media/upload.handler',
-      code: lambda.Code.fromAsset(backendDistPath, { exclude: ['*.ts', '*.d.ts', '*.map'] }),
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
       role: this.lambdaExecutionRole,
       environment: {
         MEDIA_BUCKET: mediaBucket.bucketName,
@@ -103,7 +105,9 @@ export class ApiStack extends Construct {
     const listHandler = new lambda.Function(this, 'ListHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'lambdas/media/list.handler',
-      code: lambda.Code.fromAsset(backendDistPath),
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
       role: this.lambdaExecutionRole,
       environment: {
         MEDIA_TABLE: mediaTable.tableName,
