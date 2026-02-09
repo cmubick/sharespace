@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate, Link } from 'react-router-dom'
+import { clearSession } from './services/auth'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import UploadPage from './pages/UploadPage'
@@ -11,6 +12,7 @@ function AppContent() {
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
 
   const handleLogout = () => {
+    clearSession()
     localStorage.removeItem('sharespace_access')
     navigate('/login')
   }

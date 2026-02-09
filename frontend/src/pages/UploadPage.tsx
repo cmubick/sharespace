@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiUrl } from '../services/api'
+import { getUserId } from '../services/auth'
 import '../styles/UploadPage.css'
 
 interface UploadFormData {
@@ -100,6 +101,7 @@ const UploadPage = () => {
         filename: formData.file!.name,
         fileType: formData.file!.type,
         uploaderName: formData.uploaderName,
+        userId: getUserId(),
         ...(formData.caption && { caption: formData.caption }),
         ...(formData.year && { year: formData.year }),
       }),
