@@ -86,7 +86,7 @@ const UploadPage = () => {
   }
 
   const requestPresignedUrl = async (): Promise<PresignedUrlResponse> => {
-    const response = await fetch(getApiUrl('/media/upload'), {
+    const response = await fetch(getApiUrl('/media'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

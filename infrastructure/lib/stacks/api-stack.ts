@@ -126,16 +126,56 @@ export class ApiStack extends Construct {
     const userResource = this.api.root.addResource('user')
     const profileResource = userResource.addResource('profile')
 
-    // Add Lambda integrations
-    const uploadIntegration = new apigateway.LambdaIntegration(uploadHandler)
-    const listIntegration = new apigateway.LambdaIntegration(listHandler)
+    // Add Lambda integrations with CORS response headers
+    const uploadIntegration = new apigateway.LambdaIntegration(uploadHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+          },
+        },
+      ],
+    })
+    const listIntegration = new apigateway.LambdaIntegration(listHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+          },
+        },
+      ],
+    })
 
     // Media endpoints
     mediaResource.addMethod('POST', uploadIntegration, {
-      methodResponses: [{ statusCode: '200' }],
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
     })
     mediaResource.addMethod('GET', listIntegration, {
-      methodResponses: [{ statusCode: '200' }],
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
     })
 
     // Add placeholder integrations for other endpoints
