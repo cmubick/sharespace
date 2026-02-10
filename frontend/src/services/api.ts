@@ -15,6 +15,9 @@ export function getApiUrl(path: string): string {
 }
 
 export function getMediaUrl(s3Key: string): string {
+  if (s3Key.startsWith('http://') || s3Key.startsWith('https://')) {
+    return s3Key
+  }
   if (!MEDIA_BASE_URL) {
     return s3Key
   }

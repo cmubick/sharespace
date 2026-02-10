@@ -192,6 +192,34 @@ describe('Health Check', () => {
 
 Then run: `npm run test:lambdas`
 
+### Option 4: Local Express Server
+
+Run the Lambda handlers locally with Express so the frontend can call the API without deployment:
+
+```bash
+npm run backend:dev
+```
+
+The local API will be available at:
+
+```text
+http://localhost:3001
+```
+
+Update the frontend to use:
+
+```text
+VITE_API_URL=http://localhost:3001
+```
+
+Environment variables supported by the local server:
+
+```text
+AWS_REGION
+MEDIA_TABLE_NAME
+MEDIA_BUCKET_NAME
+```
+
 ## Environment Variables
 
 Lambda handlers access environment variables via `process.env`:

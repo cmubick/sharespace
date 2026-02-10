@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiUrl, getMediaUrl } from '../services/api'
+import { mockMedia } from '../mocks/mockMedia'
 import '../styles/SlideshowPage.css'
 
 interface MediaItem {
@@ -33,6 +34,7 @@ const SlideshowPage = () => {
   const [error, setError] = useState('')
   const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   // Timers
   const autoplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -40,8 +42,17 @@ const SlideshowPage = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const isFetchingRef = useRef(false)
   const currentItemIdRef = useRef<string | null>(null)
+  const hasLoadedRef = useRef(false)
   const HIDE_DELAY_MS = 2500
   const TRANSITION_MS = 900
+
+  const isVideoType = useCallback((mediaType: string) => {
+    return mediaType === 'video' || mediaType.startsWith('video/')
+  }, [])
+
+  const isImageType = useCallback((mediaType: string) => {
+    return mediaType === 'image' || mediaType.startsWith('image/')
+  }, [])
 
   // Randomize media order
   const randomizeMedia = useCallback((items: MediaItem[]) => {
@@ -71,6 +82,57 @@ const SlideshowPage = () => {
     return next
   }, [])
 
+  const loadMockPage = useCallback((reset?: boolean) => {
+    const offset = reset ? 0 : Number(lastKey?.offset ?? 0)
+    const nextSlice = mockMedia.slice(offset, offset + PAGE_SIZE)
+    const mappedItems = nextSlice.map((item) => ({
+      id: item.mediaId,
+      filename: `Mock ${item.mediaId}`,
+      uploader: item.uploaderName,
+      uploadTimestamp: item.uploadTimestamp,
+      mediaType: item.mediaType,
+      s3Key: item.s3Key,
+      caption: item.caption,
+      year: item.year,
+    }))
+    const nextOffset = offset + nextSlice.length
+    const nextKey = nextOffset < mockMedia.length ? { offset: nextOffset } : null
+
+    setLastKey(nextKey)
+    setHasMore(Boolean(nextKey))
+
+    if (reset) {
+      const sorted = sortOrder === 'random'
+        ? randomizeMedia(mappedItems)
+        : sortMediaChronologically(mappedItems)
+      setMedia(sorted)
+      setCurrentIndex(0)
+      setDisplayIndex(0)
+      setPendingIndex(null)
+      setNextReady(false)
+      setIsTransitioning(false)
+      return
+    }
+
+    const currentId = currentItemIdRef.current
+    setMedia((prev) => {
+      const existingIds = new Set(prev.map((item) => item.id))
+      const unique = mappedItems.filter((item) => !existingIds.has(item.id))
+      if (unique.length === 0) return prev
+      const next = sortOrder === 'random'
+        ? insertRandomly(prev, unique)
+        : [...prev, ...unique]
+      if (currentId) {
+        const newIndex = next.findIndex((item) => item.id === currentId)
+        if (newIndex >= 0) {
+          setCurrentIndex(newIndex)
+          setDisplayIndex(newIndex)
+        }
+      }
+      return next
+    })
+  }, [PAGE_SIZE, insertRandomly, lastKey?.offset, randomizeMedia, sortMediaChronologically, sortOrder])
+
   const loadMediaPage = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
     if (isFetchingRef.current) return
     if (!reset && !hasMore) return
@@ -88,6 +150,11 @@ const SlideshowPage = () => {
       params.set('limit', PAGE_SIZE.toString())
       if (!reset && lastKey) {
         params.set('lastKey', encodeLastKey(lastKey))
+      }
+
+      if (useMocks) {
+        loadMockPage(reset)
+        return
       }
 
       const response = await fetch(`${getApiUrl('/media')}?${params.toString()}`)
@@ -133,7 +200,7 @@ const SlideshowPage = () => {
       }
     } catch (err) {
       console.error('Failed to load media:', err)
-      setError('Failed to load slideshow')
+      loadMockPage(reset)
     } finally {
       if (reset) {
         setLoading(false)
@@ -146,6 +213,8 @@ const SlideshowPage = () => {
 
   // Load media data
   useEffect(() => {
+    if (hasLoadedRef.current) return
+    hasLoadedRef.current = true
     loadMediaPage({ reset: true })
   }, [loadMediaPage])
 
@@ -339,7 +408,7 @@ const SlideshowPage = () => {
 
     const nextUrl = resolveMediaUrl(nextItem.s3Key)
 
-    if (nextItem.mediaType.startsWith('image/')) {
+    if (isImageType(nextItem.mediaType)) {
       const img = new Image()
       img.onload = () => setNextReady(true)
       img.src = nextUrl
@@ -348,7 +417,7 @@ const SlideshowPage = () => {
       }
     }
 
-    if (nextItem.mediaType.startsWith('video/')) {
+    if (isVideoType(nextItem.mediaType)) {
       const video = document.createElement('video')
       const handleLoaded = () => setNextReady(true)
       video.preload = 'auto'
@@ -408,13 +477,16 @@ const SlideshowPage = () => {
 
   const currentMedia = media[displayIndex]
   const nextMedia = pendingIndex !== null ? media[pendingIndex] : null
-  const isVideo = currentMedia.mediaType.startsWith('video/')
+  const isVideo = isVideoType(currentMedia.mediaType)
 
   return (
     <div className="slideshow-page">
       {/* Media Display */}
       <div className="slideshow-media">
-        <div className={`media-layer ${isTransitioning ? 'fade-out' : 'fade-in'}`}>
+        <div
+          className={`media-layer ${isTransitioning ? 'fade-out' : ''}`}
+          style={!isTransitioning ? { opacity: 1, transition: 'none' } : undefined}
+        >
           {isVideo ? (
             <video
               ref={videoRef}
@@ -439,8 +511,8 @@ const SlideshowPage = () => {
           )}
         </div>
         {nextMedia && (
-          <div className={`media-layer ${nextReady ? 'fade-in' : 'fade-preload'}`}>
-            {nextMedia.mediaType.startsWith('video/') ? (
+          <div className={`media-layer ${isTransitioning && nextReady ? 'fade-in' : 'fade-preload'}`}>
+            {isVideoType(nextMedia.mediaType) ? (
               <video
                 src={resolveMediaUrl(nextMedia.s3Key)}
                 autoPlay

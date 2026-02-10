@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import MediaViewer from '../components/MediaViewer.tsx'
 import { getApiUrl, getMediaUrl } from '../services/api'
 import { getUserId } from '../services/auth'
+import { mockMedia } from '../mocks/mockMedia'
 import '../styles/GalleryPage.css'
 
 interface MediaItem {
@@ -40,6 +41,7 @@ const GalleryPage = () => {
   const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const uploadedMediaId = (location.state as LocationState)?.uploadedMediaId
+  const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   const isFetchingRef = useRef(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -82,6 +84,28 @@ const GalleryPage = () => {
     return btoa(JSON.stringify(key))
   }
 
+  const loadMockPage = (reset?: boolean) => {
+    const offset = reset ? 0 : Number(lastKey?.offset ?? 0)
+    const nextSlice = mockMedia.slice(offset, offset + PAGE_SIZE)
+    const mappedItems = nextSlice.map((item) => ({
+      id: item.mediaId,
+      filename: `Mock ${item.mediaId}`,
+      uploader: item.uploaderName,
+      uploadTimestamp: item.uploadTimestamp,
+      mediaType: item.mediaType,
+      s3Key: item.s3Key,
+      thumbnailKey: item.thumbnailKey,
+      caption: item.caption,
+      year: item.year,
+    }))
+    const nextOffset = offset + nextSlice.length
+    const nextKey = nextOffset < mockMedia.length ? { offset: nextOffset } : null
+
+    setItems((prev) => (reset ? mappedItems : [...prev, ...mappedItems]))
+    setLastKey(nextKey)
+    setHasMore(Boolean(nextKey))
+  }
+
   // Fetch media list from API
   const loadMedia = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
     if (isFetchingRef.current) return
@@ -103,9 +127,12 @@ const GalleryPage = () => {
         params.set('lastKey', encodeLastKey(lastKey))
       }
 
-      const response = await fetch(
-        `${getApiUrl('/media')}?${params.toString()}`
-      )
+      if (useMocks) {
+        loadMockPage(reset)
+        return
+      }
+
+      const response = await fetch(`${getApiUrl('/media')}?${params.toString()}`)
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}))
         throw new Error(errorBody.error || 'Failed to fetch media')
@@ -119,7 +146,7 @@ const GalleryPage = () => {
       setHasMore(Boolean(nextLastKey))
     } catch (err) {
       console.error('Failed to load media:', err)
-      setError('Failed to load gallery. Please try again.')
+      loadMockPage(reset)
     } finally {
       if (reset) {
         setLoading(false)
@@ -184,6 +211,11 @@ const GalleryPage = () => {
     if (hasRestoredRef.current) return
     hasRestoredRef.current = true
 
+    if (useMocks) {
+      loadMedia({ reset: true })
+      return
+    }
+
     const cached = sessionStorage.getItem(STORAGE_KEY)
     if (cached && !uploadedMediaId) {
       try {
@@ -205,7 +237,7 @@ const GalleryPage = () => {
     }
 
     loadMedia({ reset: true })
-  }, [loadMedia, uploadedMediaId])
+  }, [loadMedia, uploadedMediaId, useMocks])
 
   useEffect(() => {
     groupMediaByYear(items)
