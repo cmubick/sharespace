@@ -34,7 +34,16 @@ const UploadPage = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'application/pdf']
+  const ALLOWED_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'video/mp4',
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/wav',
+  ]
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -100,6 +109,7 @@ const UploadPage = () => {
       body: JSON.stringify({
         filename: formData.file!.name,
         fileType: formData.file!.type,
+        fileSize: formData.file!.size,
         uploaderName: formData.uploaderName,
         userId: getUserId(),
         ...(formData.caption && { caption: formData.caption }),
@@ -232,7 +242,7 @@ const UploadPage = () => {
               )}
             </div>
             {!formData.file && (
-              <div className="drop-hint">JPG, PNG, GIF, WebP, MP4, PDF up to 25MB</div>
+              <div className="drop-hint">JPG, PNG, GIF, WebP, MP4, MP3, M4A, WAV up to 25MB</div>
             )}
           </div>
           <input

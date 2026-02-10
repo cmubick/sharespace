@@ -42,7 +42,7 @@ export const getConfig = (env: string): EnvironmentConfig => {
       name: `${projectName}-api-${envSuffix}`,
     },
     dynamodb: {
-      mediaTableName: `${projectName}-media-${envSuffix}`,
+      mediaTableName: isDev ? 'Media-dev' : 'Media',
       usersTableName: `${projectName}-users-${envSuffix}`,
     },
   }

@@ -28,10 +28,12 @@ const PRESIGNED_URL_EXPIRY = 3600 // 1 hour
 interface UploadRequest {
   filename: string
   fileType: string
+  fileSize: number
   uploaderName: string
-  userId: string
   caption?: string
   year?: number
+  originalYear?: number
+  album?: string
 }
 
 interface UploadResponse {
@@ -43,15 +45,19 @@ interface UploadResponse {
 }
 
 interface MediaMetadata {
+  pk: 'MEDIA'
+  sk: string
   mediaId: string
-  userId: string
   filename: string
-  uploader: string
+  uploaderName: string
   uploadTimestamp: string
-  mediaType: string
+  mediaType: 'image' | 'video' | 'audio'
   s3Key: string
+  fileSize: number
   caption?: string
   year?: number
+  originalYear?: number
+  album?: string
 }
 
 /**
@@ -90,8 +96,8 @@ export const handler = async (
     const missingFields = validateRequiredFields(uploadRequest, [
       'filename',
       'fileType',
+      'fileSize',
       'uploaderName',
-      'userId',
     ])
     if (missingFields.length > 0) {
       return createErrorResponse(
@@ -100,7 +106,16 @@ export const handler = async (
       )
     }
 
-    const { filename, fileType, uploaderName, userId, caption, year } = uploadRequest
+    const {
+      filename,
+      fileType,
+      fileSize,
+      uploaderName,
+      caption,
+      year,
+      originalYear,
+      album,
+    } = uploadRequest
 
     // Validate filename
     if (typeof filename !== 'string' || filename.trim().length === 0) {
@@ -108,7 +123,16 @@ export const handler = async (
     }
 
     // Validate fileType
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'application/pdf']
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'video/mp4',
+      'audio/mpeg',
+      'audio/mp4',
+      'audio/wav',
+    ]
     if (!allowedTypes.includes(fileType)) {
       return createErrorResponse(
         new Error(
@@ -116,6 +140,18 @@ export const handler = async (
         ),
         400
       )
+    }
+
+    const mediaType = fileType.startsWith('image/')
+      ? 'image'
+      : fileType.startsWith('video/')
+      ? 'video'
+      : fileType.startsWith('audio/')
+      ? 'audio'
+      : null
+
+    if (!mediaType) {
+      return createErrorResponse(new Error('Unsupported media type'), 400)
     }
 
     // Validate uploaderName
@@ -126,10 +162,22 @@ export const handler = async (
       )
     }
 
+    // Validate file size
+    if (typeof fileSize !== 'number' || fileSize <= 0) {
+      return createErrorResponse(new Error('fileSize must be a positive number'), 400)
+    }
+
     // Validate optional year
     if (year !== undefined && (typeof year !== 'number' || year < 1900 || year > 2100)) {
       return createErrorResponse(
         new Error('Year must be between 1900 and 2100'),
+        400
+      )
+    }
+
+    if (originalYear !== undefined && (typeof originalYear !== 'number' || originalYear < 1900 || originalYear > 2100)) {
+      return createErrorResponse(
+        new Error('Original year must be between 1900 and 2100'),
         400
       )
     }
@@ -164,17 +212,20 @@ export const handler = async (
     })
 
     // Store metadata in DynamoDB
-    const mediaMetadata: MediaMetadata & { uploadedAt: string } = {
+    const mediaMetadata: MediaMetadata = {
+      pk: 'MEDIA',
+      sk: mediaId,
       mediaId,
-      userId,
       filename,
-      uploader: uploaderName,
+      uploaderName,
       uploadTimestamp: timestamp,
-      uploadedAt: timestamp,
-      mediaType: fileType,
+      mediaType,
       s3Key,
+      fileSize,
       ...(caption && { caption }),
-      ...(year && { year }),
+      ...(year !== undefined && { year }),
+      ...(originalYear !== undefined && { originalYear }),
+      ...(album && { album }),
     }
 
     console.log('Storing metadata in DynamoDB:', mediaMetadata)

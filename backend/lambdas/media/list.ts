@@ -5,7 +5,7 @@ import {
 } from 'aws-lambda'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb'
-import { createErrorResponse, createSuccessResponse } from '../../shared/utils'
+import { createErrorResponse, createSuccessResponse, createOptionsResponse } from '../../shared/utils'
 
 const dynamoDb = DynamoDBDocumentClient.from(
   new DynamoDBClient({
@@ -25,6 +25,10 @@ export const handler = async (
   context: Context
 ): Promise<APIGatewayProxyResult> => {
   try {
+    if (event.httpMethod === 'OPTIONS') {
+      return createOptionsResponse()
+    }
+
     console.log('List media request received:', {
       requestId: context.awsRequestId,
       path: event.path,
@@ -32,14 +36,8 @@ export const handler = async (
       queryParams: event.queryStringParameters,
     })
 
-    // Get userId from query params (in real implementation, from JWT)
-    const userId = event.queryStringParameters?.userId
     const page = parseInt(event.queryStringParameters?.page || '1')
     const limit = parseInt(event.queryStringParameters?.limit || '50')
-
-    if (!userId) {
-      return createErrorResponse(new Error('userId is required'), 400)
-    }
 
     // Validate pagination params
     if (page < 1 || limit < 1 || limit > 100) {
@@ -56,8 +54,7 @@ export const handler = async (
       }
     }
 
-    console.log('Fetching media for user:', {
-      userId,
+    console.log('Fetching media list:', {
       page,
       limit,
     })
@@ -65,9 +62,9 @@ export const handler = async (
     const queryResult = await dynamoDb.send(
       new QueryCommand({
         TableName: MEDIA_TABLE,
-        KeyConditionExpression: 'userId = :userId',
+        KeyConditionExpression: 'pk = :pk',
         ExpressionAttributeValues: {
-          ':userId': userId,
+          ':pk': 'MEDIA',
         },
         Limit: limit,
         ScanIndexForward: false,
@@ -77,8 +74,8 @@ export const handler = async (
     const items = (queryResult.Items || []).map((item: any) => ({
       id: item.mediaId,
       filename: item.filename,
-      uploader: item.uploader,
-      uploadTimestamp: item.uploadTimestamp || item.uploadedAt,
+      uploader: item.uploaderName,
+      uploadTimestamp: item.uploadTimestamp,
       mediaType: item.mediaType,
       s3Key: item.s3Key,
       caption: item.caption,

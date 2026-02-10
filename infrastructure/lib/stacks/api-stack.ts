@@ -145,9 +145,9 @@ export class ApiStack extends Construct {
         {
           statusCode: '200',
           responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': "'*'",
-            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
           },
         },
       ],
@@ -157,9 +157,9 @@ export class ApiStack extends Construct {
         {
           statusCode: '200',
           responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': "'*'",
-            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
           },
         },
       ],
@@ -218,6 +218,11 @@ export class ApiStack extends Construct {
       integrationResponses: [
         {
           statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
+          },
           responseTemplates: {
             'application/json': `{
               "message": "Placeholder for ${path}",
@@ -230,7 +235,16 @@ export class ApiStack extends Construct {
     })
 
     resource.addMethod(method, mockIntegration, {
-      methodResponses: [{ statusCode: '200' }],
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
     })
   }
 

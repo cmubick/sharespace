@@ -19,6 +19,34 @@ export interface MediaItem {
   uploadedAt: string
 }
 
+export type MediaType = 'image' | 'video' | 'audio'
+
+export interface MediaRecord {
+  pk: 'MEDIA'
+  sk: string
+  mediaId: string
+  s3Key: string
+  mediaType: MediaType
+  uploaderName: string
+  caption?: string
+  year?: number
+  originalYear?: number
+  uploadTimestamp: string
+  fileSize: number
+  album?: string
+}
+
+export interface MediaCreateRequest {
+  filename: string
+  fileType: string
+  fileSize: number
+  uploaderName: string
+  caption?: string
+  year?: number
+  originalYear?: number
+  album?: string
+}
+
 export interface ApiResponse<T> {
   statusCode: number
   body: T

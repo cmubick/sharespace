@@ -21,11 +21,11 @@ export class DatabaseStack extends Construct {
     this.mediaTable = new dynamodb.Table(this, 'MediaTable', {
       tableName: config.dynamodb.mediaTableName,
       partitionKey: {
-        name: 'userId',
+        name: 'pk',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'mediaId',
+        name: 'sk',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -39,28 +39,28 @@ export class DatabaseStack extends Construct {
           : cdk.RemovalPolicy.DESTROY,
     })
 
-    // Global secondary index for querying by media type
+    // GSI1: query by year
     this.mediaTable.addGlobalSecondaryIndex({
-      indexName: 'mediaTypeIndex',
+      indexName: 'GSI1',
       partitionKey: {
-        name: 'userId',
-        type: dynamodb.AttributeType.STRING,
+        name: 'year',
+        type: dynamodb.AttributeType.NUMBER,
       },
       sortKey: {
-        name: 'mediaType',
+        name: 'uploadTimestamp',
         type: dynamodb.AttributeType.STRING,
       },
     })
 
-    // Global secondary index for querying by upload date
+    // GSI2: query by uploaderName
     this.mediaTable.addGlobalSecondaryIndex({
-      indexName: 'uploadDateIndex',
+      indexName: 'GSI2',
       partitionKey: {
-        name: 'userId',
+        name: 'uploaderName',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'uploadedAt',
+        name: 'uploadTimestamp',
         type: dynamodb.AttributeType.STRING,
       },
     })
