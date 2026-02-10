@@ -23,7 +23,6 @@ const SlideshowPage = () => {
   const [autoplay, setAutoplay] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
   const [uiVisible, setUiVisible] = useState(true)
-  const [lastInteraction, setLastInteraction] = useState(Date.now())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -121,7 +120,6 @@ const SlideshowPage = () => {
 
   const registerInteraction = useCallback(() => {
     const now = Date.now()
-    setLastInteraction(now)
     setUiVisible(true)
     scheduleHide(now)
   }, [scheduleHide])
@@ -218,7 +216,6 @@ const SlideshowPage = () => {
     if (autoplay) {
       const now = Date.now()
       setUiVisible(true)
-      setLastInteraction(now)
       scheduleHide(now)
     }
   }, [autoplay, scheduleHide])
