@@ -219,7 +219,7 @@ const GalleryPage = () => {
   }, [items, lastKey, hasMore])
 
   useEffect(() => {
-    const win = typeof globalThis !== 'undefined' ? (globalThis as Window) : undefined
+    const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
     if (!win || !('IntersectionObserver' in win)) {
       return
     }
@@ -248,7 +248,7 @@ const GalleryPage = () => {
   }, [hasMore, items.length, loadMedia])
 
   useEffect(() => {
-    const win = typeof globalThis !== 'undefined' ? (globalThis as Window) : undefined
+    const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
     if (!win || 'IntersectionObserver' in win) {
       return
     }
