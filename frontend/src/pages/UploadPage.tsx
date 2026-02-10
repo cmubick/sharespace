@@ -1,14 +1,20 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { getApiUrl } from '../services/api'
 import { getUserId } from '../services/auth'
 import '../styles/UploadPage.css'
 
 interface UploadFormData {
-  file: File | null
   uploaderName: string
   caption: string
   year: number | ''
+}
+
+interface UploadItem {
+  id: string
+  file: File
+  progress: number
+  status: 'pending' | 'uploading' | 'done' | 'error'
+  error?: string
 }
 
 interface PresignedUrlResponse {
@@ -20,18 +26,19 @@ interface PresignedUrlResponse {
 }
 
 const UploadPage = () => {
-  const navigate = useNavigate()
   const [formData, setFormData] = useState<UploadFormData>({
-    file: null,
     uploaderName: '',
     caption: '',
     year: '',
   })
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [lastUploadCount, setLastUploadCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const successTimeoutRef = useRef<number | null>(null)
 
   const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
   const ALLOWED_TYPES = [
@@ -59,12 +66,53 @@ const UploadPage = () => {
     setIsDragging(false)
     const files = e.dataTransfer.files
     if (files.length > 0) {
-      handleFileSelect(files[0])
+      handleFilesSelect(Array.from(files))
     }
   }
 
-  const handleFileSelect = (file: File) => {
+  const buildItemId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`
+
+  const handleFilesSelect = (files: File[]) => {
     setError('')
+    setSuccessMessage('')
+    setLastUploadCount(0)
+
+    const nextItems: UploadItem[] = []
+    const errors: string[] = []
+
+    files.forEach((file) => {
+      const itemId = buildItemId(file)
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: invalid file type`)
+        return
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: file too large`)
+        return
+      }
+
+      nextItems.push({
+        id: itemId,
+        file,
+        progress: 0,
+        status: 'pending',
+      })
+    })
+
+    if (errors.length > 0) {
+      setError(`Some files were skipped: ${errors.join(', ')}`)
+    }
+
+    if (nextItems.length === 0) return
+
+    setUploadItems((prev) => {
+      const existingIds = new Set(prev.map((item) => item.id))
+      const uniqueItems = nextItems.filter((item) => !existingIds.has(item.id))
+      return [...prev, ...uniqueItems]
+    })
+  }
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -90,26 +138,27 @@ const UploadPage = () => {
   }
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      handleFileSelect(file)
+    const files = e.target.files
+    if (files && files.length > 0) {
+      handleFilesSelect(Array.from(files))
     }
+    e.target.value = ''
   }
 
   const handleDropZoneClick = () => {
     fileInputRef.current?.click()
   }
 
-  const requestPresignedUrl = async (): Promise<PresignedUrlResponse> => {
+  const requestPresignedUrl = async (file: File): Promise<PresignedUrlResponse> => {
     const response = await fetch(getApiUrl('/media'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        filename: formData.file!.name,
-        fileType: formData.file!.type,
-        fileSize: formData.file!.size,
+        filename: file.name,
+        fileType: file.type,
+        fileSize: file.size,
         uploaderName: formData.uploaderName,
         userId: getUserId(),
         ...(formData.caption && { caption: formData.caption }),
@@ -125,14 +174,18 @@ const UploadPage = () => {
     return response.json()
   }
 
-  const uploadToS3 = async (presignedUrl: string, file: File): Promise<void> => {
+  const uploadToS3 = async (
+    presignedUrl: string,
+    file: File,
+    onProgress: (progressValue: number) => void
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
 
       xhr.upload.addEventListener('progress', (e: ProgressEvent) => {
         if (e.lengthComputable) {
           const percentComplete = (e.loaded / e.total) * 100
-          setProgress(percentComplete)
+          onProgress(percentComplete)
         }
       })
 
@@ -161,11 +214,12 @@ const UploadPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setProgress(0)
+    setSuccessMessage('')
+    setLastUploadCount(0)
 
     // Validation
-    if (!formData.file) {
-      setError('Please select a file')
+    if (uploadItems.length === 0) {
+      setError('Please select at least one file')
       return
     }
 
@@ -181,25 +235,73 @@ const UploadPage = () => {
 
     setUploading(true)
 
-    try {
-      // Step 1: Request presigned URL
-      console.log('Requesting presigned URL...')
-      const urlResponse = await requestPresignedUrl()
+    let completedCount = 0
+    let errorCount = 0
 
-      // Step 2: Upload to S3
-      console.log('Uploading to S3...')
-      await uploadToS3(urlResponse.presignedUrl, formData.file)
+    for (const item of uploadItems) {
+      if (item.status === 'done') continue
 
-      console.log('Upload complete, redirecting...')
-      // Step 3: Redirect to gallery
-      setTimeout(() => {
-        navigate('/gallery', { state: { uploadedMediaId: urlResponse.mediaId } })
-      }, 500)
-    } catch (err) {
-      console.error('Upload error:', err)
-      setError(err instanceof Error ? err.message : 'Upload failed')
-      setUploading(false)
-      setProgress(0)
+      setUploadItems((prev) =>
+        prev.map((current) =>
+          current.id === item.id
+            ? { ...current, status: 'uploading', progress: 0, error: undefined }
+            : current
+        )
+      )
+
+      try {
+        const urlResponse = await requestPresignedUrl(item.file)
+        await uploadToS3(urlResponse.presignedUrl, item.file, (progressValue) => {
+          setUploadItems((prev) =>
+            prev.map((current) =>
+              current.id === item.id
+                ? { ...current, progress: progressValue }
+                : current
+            )
+          )
+        })
+        completedCount += 1
+        setUploadItems((prev) =>
+          prev.map((current) =>
+            current.id === item.id
+              ? { ...current, status: 'done', progress: 100 }
+              : current
+          )
+        )
+      } catch (err) {
+        errorCount += 1
+        const message = err instanceof Error ? err.message : 'Upload failed'
+        setUploadItems((prev) =>
+          prev.map((current) =>
+            current.id === item.id
+              ? { ...current, status: 'error', error: message }
+              : current
+          )
+        )
+      }
+    }
+
+    setUploading(false)
+
+    if (completedCount > 0 && errorCount === 0) {
+      setLastUploadCount(completedCount)
+      setSuccessMessage(`Uploaded ${completedCount} file${completedCount === 1 ? '' : 's'} successfully.`)
+      setUploadItems([])
+      setFormData((prev) => ({
+        ...prev,
+        caption: '',
+        year: '',
+      }))
+      if (successTimeoutRef.current) {
+        window.clearTimeout(successTimeoutRef.current)
+      }
+      successTimeoutRef.current = window.setTimeout(() => {
+        setSuccessMessage('')
+      }, 3000)
+    } else if (completedCount > 0 && errorCount > 0) {
+      setSuccessMessage(`Uploaded ${completedCount} file${completedCount === 1 ? '' : 's'} with ${errorCount} error${errorCount === 1 ? '' : 's'}.`)
+    } else if (errorCount > 0) {
+      setError('Some uploads failed. Please review and try again.')
     }
   }
 
@@ -212,6 +314,12 @@ const UploadPage = () => {
         {error && (
           <div className="error-message active">
             {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="success-message active">
+            {successMessage}
           </div>
         )}
 
@@ -228,20 +336,20 @@ const UploadPage = () => {
               {formData.file ? '✓' : '↑'}
             </div>
             <div className="drop-text">
-              {formData.file ? (
+              {uploadItems.length > 0 ? (
                 <>
-                  <strong>{formData.file.name}</strong>
+                  <strong>{uploadItems.length} file{uploadItems.length === 1 ? '' : 's'} selected</strong>
                   <div className="file-size">
-                    {(formData.file.size / 1024 / 1024).toFixed(2)} MB
+                    Total size: {(uploadItems.reduce((sum, item) => sum + item.file.size, 0) / 1024 / 1024).toFixed(2)} MB
                   </div>
                 </>
               ) : (
                 <>
-                  <strong>Drop your file here</strong> or click to browse
+                  <strong>Drop your files here</strong> or click to browse
                 </>
               )}
             </div>
-            {!formData.file && (
+            {uploadItems.length === 0 && (
               <div className="drop-hint">JPG, PNG, GIF, WebP, MP4, MP3, M4A, WAV up to 25MB</div>
             )}
           </div>
@@ -251,22 +359,46 @@ const UploadPage = () => {
             onChange={handleFileInputChange}
             accept={ALLOWED_TYPES.join(',')}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            multiple
             ref={fileInputRef}
           />
         </div>
 
         {/* File Buttons */}
-        {formData.file && (
+        {uploadItems.length > 0 && (
           <div className="file-buttons">
             <label className="btn btn-secondary">
-              Change file
+              Add more files
               <input
                 type="file"
                 className="file-input"
                 onChange={handleFileInputChange}
                 accept={ALLOWED_TYPES.join(',')}
+                multiple
               />
             </label>
+          </div>
+        )}
+
+        {uploadItems.length > 0 && (
+          <div className="upload-list">
+            {uploadItems.map((item) => (
+              <div key={item.id} className={`upload-item ${item.status}`}>
+                <div className="upload-item-header">
+                  <span className="upload-item-name">{item.file.name}</span>
+                  <span className="upload-item-status">
+                    {item.status === 'uploading' && `${Math.round(item.progress)}%`}
+                    {item.status === 'done' && 'Done'}
+                    {item.status === 'error' && 'Error'}
+                    {item.status === 'pending' && 'Queued'}
+                  </span>
+                </div>
+                <div className="progress-bar-wrapper">
+                  <div className="progress-bar" style={{ width: `${item.progress}%` }}></div>
+                </div>
+                {item.error && <div className="upload-item-error">{item.error}</div>}
+              </div>
+            ))}
           </div>
         )}
 
@@ -315,13 +447,10 @@ const UploadPage = () => {
           </div>
 
           {/* Progress Bar */}
-          <div className={`progress-container ${uploading && progress > 0 ? 'active' : ''}`}>
+          <div className={`progress-container ${uploading ? 'active' : ''}`}>
             <div className="progress-label">
               <span>Uploading</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <div className="progress-bar-wrapper">
-              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+              <span>{uploadItems.filter((item) => item.status === 'done').length}/{uploadItems.length}</span>
             </div>
           </div>
 
@@ -329,11 +458,21 @@ const UploadPage = () => {
           <button
             type="submit"
             className="btn-primary"
-            disabled={!formData.file || !formData.uploaderName.trim() || uploading}
+            disabled={uploadItems.length === 0 || !formData.uploaderName.trim() || uploading}
           >
-            {uploading ? `Uploading... ${Math.round(progress)}%` : 'Upload Media'}
+            {uploading ? 'Uploading...' : 'Upload Media'}
           </button>
         </form>
+
+        {lastUploadCount > 0 && !uploading && uploadItems.length === 0 && (
+          <button
+            type="button"
+            className="btn-primary upload-more"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Upload More Photos
+          </button>
+        )}
       </div>
     </div>
   )

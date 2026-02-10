@@ -219,6 +219,10 @@ const GalleryPage = () => {
   }, [items, lastKey, hasMore])
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      return
+    }
+
     if (loadMoreObserverRef.current) {
       loadMoreObserverRef.current.disconnect()
     }
@@ -231,16 +235,40 @@ const GalleryPage = () => {
           }
         })
       },
-      { rootMargin: '200px' }
+      { rootMargin: '200px 0px' }
     )
 
     const target = loadMoreRef.current
-    if (target) {
+    if (target && hasMore) {
       loadMoreObserverRef.current.observe(target)
     }
 
     return () => loadMoreObserverRef.current?.disconnect()
-  }, [loadMedia])
+  }, [hasMore, items.length, loadMedia])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || 'IntersectionObserver' in window) {
+      return
+    }
+
+    const handleScroll = () => {
+      if (!hasMore || isFetchingRef.current) return
+      const scrollPosition = window.scrollY + window.innerHeight
+      const threshold = document.body.offsetHeight - 400
+      if (scrollPosition >= threshold) {
+        loadMedia()
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll)
+    handleScroll()
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [hasMore, loadMedia])
 
   // Generate image URL from S3 key
   const getImageUrl = (key: string) => {
@@ -358,7 +386,7 @@ const GalleryPage = () => {
                 </div>
               </section>
             ))}
-            <div ref={loadMoreRef} />
+            <div ref={loadMoreRef} className="load-more-sentinel" aria-hidden="true" />
             {loadingMore && (
               <div className="loading-state">
                 <div className="spinner"></div>
