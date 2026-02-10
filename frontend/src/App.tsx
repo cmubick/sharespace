@@ -144,7 +144,7 @@ function AppContent() {
       </main>
       <footer className="site-footer">
         <p>
-          Justin’s band: <a href="https://woodenindianburialground.bandcamp.com/" target="_blank" rel="noopener noreferrer">Wooden Indian Burial Ground</a>
+          Justin’s band: <a href="https://woodenindianburialground.bandcamp.com/" target="_blank" rel="noopener noreferrer">W.I.B.G.</a>
         </p>
       </footer>
     </div>
