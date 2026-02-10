@@ -61,6 +61,12 @@ export const handler = async (
       }
     }
 
+    console.log('Pagination request:', {
+      limit,
+      lastKeyParam,
+      exclusiveStartKey,
+    })
+
     const yearParam = event.queryStringParameters?.year
     const uploaderParam = event.queryStringParameters?.uploader
 
@@ -75,56 +81,71 @@ export const handler = async (
 
     if (yearParam && !Number.isNaN(Number(yearParam)) && !uploaderParam) {
       const year = Number(yearParam)
-      const queryResult = await dynamoDb.send(
-        new QueryCommand({
-          TableName: MEDIA_TABLE,
-          IndexName: 'GSI1',
-          KeyConditionExpression: '#year = :year',
-          ExpressionAttributeNames: {
-            '#year': 'year',
-          },
-          ExpressionAttributeValues: {
-            ':year': year,
-          },
-          Limit: limit,
-          ScanIndexForward: true,
-          ExclusiveStartKey: exclusiveStartKey,
-        })
-      )
+      const queryParams = {
+        TableName: MEDIA_TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: '#year = :year',
+        ExpressionAttributeNames: {
+          '#year': 'year',
+        },
+        ExpressionAttributeValues: {
+          ':year': year,
+        },
+        Limit: limit,
+        ScanIndexForward: true,
+        ExclusiveStartKey: exclusiveStartKey,
+      }
+
+      console.log('DynamoDB query (year):', queryParams)
+      const queryResult = await dynamoDb.send(new QueryCommand(queryParams))
       rawItems = queryResult.Items || []
       lastEvaluatedKey = queryResult.LastEvaluatedKey
+      console.log('DynamoDB result (year):', {
+        count: rawItems.length,
+        lastEvaluatedKey,
+      })
     } else if (uploaderParam && !yearParam) {
-      const queryResult = await dynamoDb.send(
-        new QueryCommand({
-          TableName: MEDIA_TABLE,
-          IndexName: 'GSI2',
-          KeyConditionExpression: 'uploaderName = :uploaderName',
-          ExpressionAttributeValues: {
-            ':uploaderName': uploaderParam,
-          },
-          Limit: limit,
-          ScanIndexForward: true,
-          ExclusiveStartKey: exclusiveStartKey,
-        })
-      )
+      const queryParams = {
+        TableName: MEDIA_TABLE,
+        IndexName: 'GSI2',
+        KeyConditionExpression: 'uploaderName = :uploaderName',
+        ExpressionAttributeValues: {
+          ':uploaderName': uploaderParam,
+        },
+        Limit: limit,
+        ScanIndexForward: true,
+        ExclusiveStartKey: exclusiveStartKey,
+      }
+
+      console.log('DynamoDB query (uploader):', queryParams)
+      const queryResult = await dynamoDb.send(new QueryCommand(queryParams))
       rawItems = queryResult.Items || []
       lastEvaluatedKey = queryResult.LastEvaluatedKey
+      console.log('DynamoDB result (uploader):', {
+        count: rawItems.length,
+        lastEvaluatedKey,
+      })
     } else {
-      const queryResult = await dynamoDb.send(
-        new QueryCommand({
-          TableName: MEDIA_TABLE,
-          IndexName: 'GSI3',
-          KeyConditionExpression: 'gsi3pk = :gsi3pk',
-          ExpressionAttributeValues: {
-            ':gsi3pk': 'MEDIA',
-          },
-          Limit: limit,
-          ScanIndexForward: true,
-          ExclusiveStartKey: exclusiveStartKey,
-        })
-      )
+      const queryParams = {
+        TableName: MEDIA_TABLE,
+        IndexName: 'GSI3',
+        KeyConditionExpression: 'gsi3pk = :gsi3pk',
+        ExpressionAttributeValues: {
+          ':gsi3pk': 'MEDIA',
+        },
+        Limit: limit,
+        ScanIndexForward: true,
+        ExclusiveStartKey: exclusiveStartKey,
+      }
+
+      console.log('DynamoDB query (chronological):', queryParams)
+      const queryResult = await dynamoDb.send(new QueryCommand(queryParams))
       rawItems = queryResult.Items || []
       lastEvaluatedKey = queryResult.LastEvaluatedKey
+      console.log('DynamoDB result (chronological):', {
+        count: rawItems.length,
+        lastEvaluatedKey,
+      })
     }
 
     const items = rawItems
