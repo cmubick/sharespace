@@ -27,6 +27,13 @@
   display: block;
 }
 
+.brand-fallback {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+}
+
 .app-nav {
   display: flex;
   align-items: center;

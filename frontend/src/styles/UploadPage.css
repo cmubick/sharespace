@@ -33,9 +33,9 @@
 }
 
 .drop-zone.dragging {
-  border-color: #4a9eff;
-  background-color: rgba(74, 158, 255, 0.15);
-  box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+  border-color: var(--color-accent);
+  background-color: rgba(250, 204, 21, 0.15);
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
 }
 
 .drop-zone-content {
@@ -214,8 +214,8 @@ input[type='text']:focus,
 input[type='number']:focus,
 textarea:focus {
   outline: none;
-  border-color: #4a9eff;
-  box-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.3);
 }
 
 input[type='text']::placeholder,
@@ -267,10 +267,10 @@ textarea {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #4a9eff, #2d7dd4);
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
   width: 0%;
   transition: width 0.3s ease;
-  box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
 }
 
 /* Error Message */
@@ -292,8 +292,8 @@ textarea {
 .btn-primary {
   width: 100%;
   padding: 0.85rem;
-  background: linear-gradient(135deg, #4a9eff, #2d7dd4);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  color: #111;
   border: none;
   border-radius: 6px;
   font-size: 1rem;
@@ -303,7 +303,7 @@ textarea {
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 0 16px rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.5);
   transform: translateY(-2px);
 }
 

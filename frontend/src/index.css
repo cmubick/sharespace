@@ -12,7 +12,10 @@
   --color-border: #e2e2e2;
   --color-text: #111111;
   --color-text-secondary: #4a4a4a;
-  --color-accent: #0ea5e9;
+  --color-accent: #facc15;
+  --color-accent-hover: #eab308;
+  --color-accent-text: #a16207;
+  --color-accent-text-hover: #92400e;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -42,12 +45,12 @@ body {
 
 a {
   font-weight: 500;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #0284c7;
+  color: var(--color-accent-text-hover);
 }
 
 h1 {
