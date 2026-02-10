@@ -219,7 +219,8 @@ const GalleryPage = () => {
   }, [items, lastKey, hasMore])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    const win = typeof globalThis !== 'undefined' ? (globalThis as Window) : undefined
+    if (!win || !('IntersectionObserver' in win)) {
       return
     }
 
@@ -247,26 +248,27 @@ const GalleryPage = () => {
   }, [hasMore, items.length, loadMedia])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || 'IntersectionObserver' in window) {
+    const win = typeof globalThis !== 'undefined' ? (globalThis as Window) : undefined
+    if (!win || 'IntersectionObserver' in win) {
       return
     }
 
     const handleScroll = () => {
       if (!hasMore || isFetchingRef.current) return
-      const scrollPosition = window.scrollY + window.innerHeight
+      const scrollPosition = win.scrollY + win.innerHeight
       const threshold = document.body.offsetHeight - 400
       if (scrollPosition >= threshold) {
         loadMedia()
       }
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    window.addEventListener('resize', handleScroll)
+    win.addEventListener('scroll', handleScroll, { passive: true })
+    win.addEventListener('resize', handleScroll)
     handleScroll()
 
     return () => {
-      window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', handleScroll)
+      win.removeEventListener('scroll', handleScroll)
+      win.removeEventListener('resize', handleScroll)
     }
   }, [hasMore, loadMedia])
 
