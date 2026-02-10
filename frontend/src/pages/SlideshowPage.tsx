@@ -45,36 +45,49 @@ const SlideshowPage = () => {
     })
   }, [])
 
+  const fetchMedia = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const response = await fetch(getApiUrl('/media'))
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}))
+        throw new Error(errorBody.error || 'Failed to fetch media')
+      }
+      const data = await response.json()
+      const items = (data.items || []) as MediaItem[]
+
+      const sorted = sortOrder === 'random'
+        ? randomizeMedia(items)
+        : sortMediaChronologically(items)
+
+      setMedia(sorted)
+      setCurrentIndex((prev) => (sorted.length === 0 ? 0 : Math.min(prev, sorted.length - 1)))
+    } catch (err) {
+      console.error('Failed to load media:', err)
+      setError('Failed to load slideshow')
+    } finally {
+      setLoading(false)
+    }
+  }, [randomizeMedia, sortMediaChronologically, sortOrder])
+
   // Load media data
   useEffect(() => {
-    const loadMedia = async () => {
-      try {
-        setLoading(true)
-        setError('')
+    fetchMedia()
+  }, [fetchMedia])
 
-        const response = await fetch(getApiUrl('/media'))
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}))
-          throw new Error(errorBody.error || 'Failed to fetch media')
-        }
-        const data = await response.json()
-        const items = (data.items || []) as MediaItem[]
-
-        const sorted = sortOrder === 'random'
-          ? randomizeMedia(items)
-          : sortMediaChronologically(items)
-
-        setMedia(sorted)
-      } catch (err) {
-        console.error('Failed to load media:', err)
-        setError('Failed to load slideshow')
-      } finally {
-        setLoading(false)
+  // Refetch when slideshow becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMedia()
       }
     }
 
-    loadMedia()
-  }, [randomizeMedia, sortMediaChronologically, sortOrder])
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchMedia])
 
   // Handle sort order change
   const handleSortChange = useCallback(

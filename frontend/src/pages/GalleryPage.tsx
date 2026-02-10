@@ -15,6 +15,7 @@ interface MediaItem {
   thumbnailKey?: string
   caption?: string
   year?: number
+  album?: string
 }
 
 interface GroupedMedia {
@@ -118,6 +119,22 @@ const GalleryPage = () => {
     }
 
     setGroupedMedia(sorted)
+  }
+
+  const updateMediaItem = (updated: MediaItem) => {
+    const allItems: MediaItem[] = Object.values(groupedMedia).flat()
+    const nextItems = allItems.map((item) =>
+      item.id === updated.id ? { ...item, ...updated } : item
+    )
+    groupMediaByYear(nextItems)
+    setSelectedMedia(updated)
+  }
+
+  const removeMediaItem = (mediaId: string) => {
+    const allItems: MediaItem[] = Object.values(groupedMedia).flat()
+    const nextItems = allItems.filter((item) => item.id !== mediaId)
+    groupMediaByYear(nextItems)
+    setSelectedMedia(null)
   }
 
   // Load media on mount
@@ -247,7 +264,12 @@ const GalleryPage = () => {
 
       {/* Media Viewer Modal */}
       {selectedMedia && (
-        <MediaViewer media={selectedMedia} onClose={() => setSelectedMedia(null)} />
+        <MediaViewer
+          media={selectedMedia}
+          onClose={() => setSelectedMedia(null)}
+          onUpdate={updateMediaItem}
+          onDelete={removeMediaItem}
+        />
       )}
     </div>
   )

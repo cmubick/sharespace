@@ -34,6 +34,10 @@ export interface MediaRecord {
   uploadTimestamp: string
   fileSize: number
   album?: string
+  hidden?: boolean
+  hiddenReason?: string
+  flaggedBy?: string
+  flaggedAt?: string
 }
 
 export interface MediaCreateRequest {

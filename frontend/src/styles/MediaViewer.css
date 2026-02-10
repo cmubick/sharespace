@@ -215,6 +215,20 @@
   font-size: 0.9rem;
 }
 
+.detail-input {
+  flex: 1;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #e6e6e6;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.detail-input:focus {
+  outline: none;
+  border-color: #4a4a4a;
+}
 .detail-value {
   color: #ccc;
   font-size: 0.9rem;

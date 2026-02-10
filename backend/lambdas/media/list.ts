@@ -116,7 +116,9 @@ export const handler = async (
       })
     }
 
-    const items = rawItems.map((item: any) => ({
+    const items = rawItems
+      .filter((item) => !item.hidden)
+      .map((item: any) => ({
       id: item.mediaId,
       filename: item.filename,
       uploader: item.uploaderName,
@@ -126,7 +128,7 @@ export const handler = async (
       thumbnailKey: item.thumbnailKey,
       caption: item.caption,
       year: item.year,
-    }))
+      }))
 
     return createSuccessResponse({
       items,
