@@ -4,7 +4,7 @@ import {
   Context,
 } from 'aws-lambda'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import { createErrorResponse, createSuccessResponse, createOptionsResponse } from '../../shared/utils'
 
 const dynamoDb = DynamoDBDocumentClient.from(
@@ -36,28 +36,42 @@ export const handler = async (
       queryParams: event.queryStringParameters,
     })
 
-    const page = parseInt(event.queryStringParameters?.page || '1')
-    const limit = parseInt(event.queryStringParameters?.limit || '50')
+    const limit = parseInt(event.queryStringParameters?.limit || '30')
 
     // Validate pagination params
-    if (page < 1 || limit < 1 || limit > 100) {
+    if (limit < 1 || limit > 100) {
       return createErrorResponse(
-        new Error('Invalid pagination parameters: page >= 1, 1 <= limit <= 100'),
+        new Error('Invalid pagination parameters: 1 <= limit <= 100'),
         400
       )
+    }
+
+    const lastKeyParam = event.queryStringParameters?.lastKey
+    let exclusiveStartKey: Record<string, any> | undefined
+    if (lastKeyParam) {
+      try {
+        const decoded = Buffer.from(lastKeyParam, 'base64').toString('utf-8')
+        exclusiveStartKey = JSON.parse(decoded)
+      } catch (err) {
+        try {
+          exclusiveStartKey = JSON.parse(lastKeyParam)
+        } catch (parseErr) {
+          return createErrorResponse(new Error('Invalid lastKey parameter'), 400)
+        }
+      }
     }
 
     const yearParam = event.queryStringParameters?.year
     const uploaderParam = event.queryStringParameters?.uploader
 
     console.log('Fetching media list:', {
-      page,
       limit,
       year: yearParam,
       uploader: uploaderParam,
     })
 
     let rawItems: any[] = []
+    let lastEvaluatedKey: Record<string, any> | undefined
 
     if (yearParam && !Number.isNaN(Number(yearParam)) && !uploaderParam) {
       const year = Number(yearParam)
@@ -73,10 +87,12 @@ export const handler = async (
             ':year': year,
           },
           Limit: limit,
-          ScanIndexForward: false,
+          ScanIndexForward: true,
+          ExclusiveStartKey: exclusiveStartKey,
         })
       )
       rawItems = queryResult.Items || []
+      lastEvaluatedKey = queryResult.LastEvaluatedKey
     } else if (uploaderParam && !yearParam) {
       const queryResult = await dynamoDb.send(
         new QueryCommand({
@@ -87,33 +103,28 @@ export const handler = async (
             ':uploaderName': uploaderParam,
           },
           Limit: limit,
-          ScanIndexForward: false,
+          ScanIndexForward: true,
+          ExclusiveStartKey: exclusiveStartKey,
         })
       )
       rawItems = queryResult.Items || []
+      lastEvaluatedKey = queryResult.LastEvaluatedKey
     } else {
-      const scanResult = await dynamoDb.send(
-        new ScanCommand({
+      const queryResult = await dynamoDb.send(
+        new QueryCommand({
           TableName: MEDIA_TABLE,
+          IndexName: 'GSI3',
+          KeyConditionExpression: 'gsi3pk = :gsi3pk',
+          ExpressionAttributeValues: {
+            ':gsi3pk': 'MEDIA',
+          },
           Limit: limit,
+          ScanIndexForward: true,
+          ExclusiveStartKey: exclusiveStartKey,
         })
       )
-      rawItems = scanResult.Items || []
-
-      if (yearParam && !Number.isNaN(Number(yearParam))) {
-        const year = Number(yearParam)
-        rawItems = rawItems.filter(item => item.year === year)
-      }
-
-      if (uploaderParam) {
-        rawItems = rawItems.filter(item => item.uploaderName === uploaderParam)
-      }
-
-      rawItems.sort((a, b) => {
-        const aTime = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0
-        const bTime = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0
-        return bTime - aTime
-      })
+      rawItems = queryResult.Items || []
+      lastEvaluatedKey = queryResult.LastEvaluatedKey
     }
 
     const items = rawItems
@@ -132,12 +143,7 @@ export const handler = async (
 
     return createSuccessResponse({
       items,
-      pagination: {
-        page,
-        limit,
-        total: items.length,
-        totalPages: 1,
-      },
+      lastKey: lastEvaluatedKey || null,
     })
   } catch (error) {
     console.error('List media error:', error)

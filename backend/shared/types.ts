@@ -24,6 +24,8 @@ export type MediaType = 'image' | 'video' | 'audio'
 export interface MediaRecord {
   pk: 'MEDIA'
   sk: string
+  gsi3pk?: 'MEDIA'
+  gsi3sk?: string
   mediaId: string
   s3Key: string
   mediaType: MediaType

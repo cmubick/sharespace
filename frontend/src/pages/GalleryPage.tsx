@@ -28,11 +28,22 @@ interface LocationState {
 
 const GalleryPage = () => {
   const location = useLocation()
+  const PAGE_SIZE = 30
+  const STORAGE_KEY = 'sharespace_gallery_state'
+  const hasRestoredRef = useRef(false)
   const [groupedMedia, setGroupedMedia] = useState<GroupedMedia>({})
+  const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
+  const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
+  const [hasMore, setHasMore] = useState(true)
   const uploadedMediaId = (location.state as LocationState)?.uploadedMediaId
+
+  const isFetchingRef = useRef(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const loadMoreObserverRef = useRef<IntersectionObserver | null>(null)
 
   // Lazy loading refs
   const imageRefs = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -67,14 +78,33 @@ const GalleryPage = () => {
     }
   }, [])
 
+  const encodeLastKey = (key: Record<string, unknown>) => {
+    return btoa(JSON.stringify(key))
+  }
+
   // Fetch media list from API
-  const loadMedia = useCallback(async () => {
+  const loadMedia = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
+    if (isFetchingRef.current) return
+    if (!reset && !hasMore) return
+
+    isFetchingRef.current = true
     try {
-      setLoading(true)
+      if (reset) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
       setError('')
 
+      const params = new URLSearchParams()
+      params.set('userId', getUserId())
+      params.set('limit', PAGE_SIZE.toString())
+      if (!reset && lastKey) {
+        params.set('lastKey', encodeLastKey(lastKey))
+      }
+
       const response = await fetch(
-        `${getApiUrl('/media')}?userId=${encodeURIComponent(getUserId())}`
+        `${getApiUrl('/media')}?${params.toString()}`
       )
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}))
@@ -82,15 +112,23 @@ const GalleryPage = () => {
       }
       const data = await response.json()
       const items = (data.items || []) as MediaItem[]
+      const nextLastKey = data.lastKey || null
 
-      groupMediaByYear(items)
+      setItems((prev) => (reset ? items : [...prev, ...items]))
+      setLastKey(nextLastKey)
+      setHasMore(Boolean(nextLastKey))
     } catch (err) {
       console.error('Failed to load media:', err)
       setError('Failed to load gallery. Please try again.')
     } finally {
-      setLoading(false)
+      if (reset) {
+        setLoading(false)
+      } else {
+        setLoadingMore(false)
+      }
+      isFetchingRef.current = false
     }
-  }, [])
+  }, [PAGE_SIZE, hasMore, lastKey])
 
   // Group media by year
   const groupMediaByYear = (items: MediaItem[]) => {
@@ -104,11 +142,19 @@ const GalleryPage = () => {
       grouped[year].push(item)
     })
 
-    // Sort years in descending order, with "Unknown Year" at the end
+    Object.keys(grouped).forEach((year) => {
+      grouped[year].sort((a, b) => {
+        const aTime = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0
+        const bTime = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0
+        return aTime - bTime
+      })
+    })
+
+    // Sort years in ascending order, with "Unknown Year" at the end
     const sorted: GroupedMedia = {}
     const years = Object.keys(grouped)
       .filter((y) => y !== 'Unknown Year')
-      .sort((a, b) => parseInt(b) - parseInt(a))
+      .sort((a, b) => parseInt(a) - parseInt(b))
 
     years.forEach((year) => {
       sorted[year] = grouped[year]
@@ -122,24 +168,78 @@ const GalleryPage = () => {
   }
 
   const updateMediaItem = (updated: MediaItem) => {
-    const allItems: MediaItem[] = Object.values(groupedMedia).flat()
-    const nextItems = allItems.map((item) =>
+    setItems((prev) => prev.map((item) =>
       item.id === updated.id ? { ...item, ...updated } : item
-    )
-    groupMediaByYear(nextItems)
+    ))
     setSelectedMedia(updated)
   }
 
   const removeMediaItem = (mediaId: string) => {
-    const allItems: MediaItem[] = Object.values(groupedMedia).flat()
-    const nextItems = allItems.filter((item) => item.id !== mediaId)
-    groupMediaByYear(nextItems)
+    setItems((prev) => prev.filter((item) => item.id !== mediaId))
     setSelectedMedia(null)
   }
 
   // Load media on mount
   useEffect(() => {
-    loadMedia()
+    if (hasRestoredRef.current) return
+    hasRestoredRef.current = true
+
+    const cached = sessionStorage.getItem(STORAGE_KEY)
+    if (cached && !uploadedMediaId) {
+      try {
+        const parsed = JSON.parse(cached) as {
+          items: MediaItem[]
+          lastKey: Record<string, unknown> | null
+          hasMore: boolean
+        }
+        if (Array.isArray(parsed.items)) {
+          setItems(parsed.items)
+          setLastKey(parsed.lastKey || null)
+          setHasMore(parsed.hasMore ?? Boolean(parsed.lastKey))
+          setLoading(false)
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to restore gallery cache:', err)
+      }
+    }
+
+    loadMedia({ reset: true })
+  }, [loadMedia, uploadedMediaId])
+
+  useEffect(() => {
+    groupMediaByYear(items)
+  }, [items])
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ items, lastKey, hasMore })
+    )
+  }, [items, lastKey, hasMore])
+
+  useEffect(() => {
+    if (loadMoreObserverRef.current) {
+      loadMoreObserverRef.current.disconnect()
+    }
+
+    loadMoreObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            loadMedia()
+          }
+        })
+      },
+      { rootMargin: '200px' }
+    )
+
+    const target = loadMoreRef.current
+    if (target) {
+      loadMoreObserverRef.current.observe(target)
+    }
+
+    return () => loadMoreObserverRef.current?.disconnect()
   }, [loadMedia])
 
   // Generate image URL from S3 key
@@ -258,6 +358,13 @@ const GalleryPage = () => {
                 </div>
               </section>
             ))}
+            <div ref={loadMoreRef} />
+            {loadingMore && (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading more...</p>
+              </div>
+            )}
           </div>
         )}
       </div>

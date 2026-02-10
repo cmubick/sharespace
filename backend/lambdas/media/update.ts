@@ -22,6 +22,11 @@ interface UpdateRequest {
   uploaderName?: string
 }
 
+const buildYearSort = (yearValue?: number) => {
+  const safeYear = typeof yearValue === 'number' ? yearValue : 9999
+  return String(safeYear).padStart(4, '0')
+}
+
 export const handler = async (
   event: APIGatewayProxyEvent,
   context: Context
@@ -104,6 +109,16 @@ export const handler = async (
         updateExpressions.push('#originalYear = :originalYear')
         expressionAttributeNames['#originalYear'] = 'originalYear'
         expressionAttributeValues[':originalYear'] = existing.Item.year
+      }
+
+      const uploadTimestamp = existing.Item.uploadTimestamp
+      if (uploadTimestamp) {
+        updateExpressions.push('#gsi3pk = :gsi3pk')
+        updateExpressions.push('#gsi3sk = :gsi3sk')
+        expressionAttributeNames['#gsi3pk'] = 'gsi3pk'
+        expressionAttributeNames['#gsi3sk'] = 'gsi3sk'
+        expressionAttributeValues[':gsi3pk'] = 'MEDIA'
+        expressionAttributeValues[':gsi3sk'] = `${buildYearSort(year)}#${uploadTimestamp}#${mediaId}`
       }
     }
 

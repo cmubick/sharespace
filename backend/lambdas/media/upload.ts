@@ -45,6 +45,8 @@ interface UploadResponse {
 interface MediaMetadata {
   pk: 'MEDIA'
   sk: string
+  gsi3pk: 'MEDIA'
+  gsi3sk: string
   mediaId: string
   uploaderName: string
   uploadTimestamp: string
@@ -52,6 +54,11 @@ interface MediaMetadata {
   s3Key: string
   caption?: string
   year?: number
+}
+
+const buildYearSort = (yearValue?: number) => {
+  const safeYear = typeof yearValue === 'number' ? yearValue : 9999
+  return String(safeYear).padStart(4, '0')
 }
 
 /**
@@ -177,6 +184,8 @@ export const handler = async (
     const mediaMetadata: MediaMetadata = {
       pk: 'MEDIA',
       sk: mediaId,
+      gsi3pk: 'MEDIA',
+      gsi3sk: `${buildYearSort(year)}#${timestamp}#${mediaId}`,
       mediaId,
       uploaderName,
       uploadTimestamp: timestamp,

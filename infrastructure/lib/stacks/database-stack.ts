@@ -65,6 +65,19 @@ export class DatabaseStack extends Construct {
       },
     })
 
+    // GSI3: chronological ordering across years
+    this.mediaTable.addGlobalSecondaryIndex({
+      indexName: 'GSI3',
+      partitionKey: {
+        name: 'gsi3pk',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'gsi3sk',
+        type: dynamodb.AttributeType.STRING,
+      },
+    })
+
     // Users DynamoDB table
     this.usersTable = new dynamodb.Table(this, 'UsersTable', {
       tableName: config.dynamodb.usersTableName,
