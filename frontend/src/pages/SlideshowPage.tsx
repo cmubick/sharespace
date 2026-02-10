@@ -98,6 +98,24 @@ const SlideshowPage = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [fetchMedia])
 
+  const scheduleHide = useCallback((interactionTime: number) => {
+    if (uiHideTimerRef.current) {
+      clearTimeout(uiHideTimerRef.current)
+    }
+
+    uiHideTimerRef.current = setTimeout(() => {
+      if (Date.now() - interactionTime >= HIDE_DELAY_MS) {
+        setUiVisible(false)
+      }
+    }, HIDE_DELAY_MS)
+  }, [HIDE_DELAY_MS])
+
+  const registerInteraction = useCallback(() => {
+    const now = Date.now()
+    setUiVisible(true)
+    scheduleHide(now)
+  }, [scheduleHide])
+
   useEffect(() => {
     const updateInitialVisibility = () => {
       if (window.innerWidth <= 768) {
@@ -134,24 +152,6 @@ const SlideshowPage = () => {
     },
     [media, randomizeMedia, sortMediaChronologically]
   )
-
-  const scheduleHide = useCallback((interactionTime: number) => {
-    if (uiHideTimerRef.current) {
-      clearTimeout(uiHideTimerRef.current)
-    }
-
-    uiHideTimerRef.current = setTimeout(() => {
-      if (Date.now() - interactionTime >= HIDE_DELAY_MS) {
-        setUiVisible(false)
-      }
-    }, HIDE_DELAY_MS)
-  }, [HIDE_DELAY_MS])
-
-  const registerInteraction = useCallback(() => {
-    const now = Date.now()
-    setUiVisible(true)
-    scheduleHide(now)
-  }, [scheduleHide])
 
   // Handle mouse/touch movement to show UI
   useEffect(() => {
