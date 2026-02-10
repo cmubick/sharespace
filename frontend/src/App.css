@@ -84,6 +84,40 @@
   font-size: 16px;
   color: #b0b0b0;
   margin: 0;
+  text-align: center;
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+.home-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.action-button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background: #2a2a2a;
+  color: #e6e6e6;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.action-button:hover {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.home-footer {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #8c8c8c;
+  text-align: center;
 }
 
 @media (max-width: 480px) {

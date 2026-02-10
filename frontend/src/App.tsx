@@ -21,7 +21,7 @@ function AppContent() {
     <div className="app">
       {hasAccess && (
         <header className="app-header">
-          <h1>ShareSpace</h1>
+          <h1>JDF</h1>
           <nav className="app-nav">
             <Link to="/" className="nav-link">Home</Link>
             <Link to="/upload" className="nav-link">Upload</Link>
@@ -40,8 +40,21 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <div className="app-container">
-                <h2>Welcome to ShareSpace</h2>
-                <p>You are now logged in. Start by uploading media or viewing the gallery.</p>
+                <h2>Remembering Justin D. Fowler</h2>
+                <p>
+                  This space is for everyone who knew and loved Justin
+                  to share photos, videos, and recordings so we can
+                  remember him together.
+                  <br />
+                  <br />
+                  Please upload anything you&apos;d like to share.
+                </p>
+                <div className="home-actions">
+                  <Link to="/upload" className="action-button">Upload Media</Link>
+                  <Link to="/gallery" className="action-button">View Gallery</Link>
+                  <Link to="/slideshow" className="action-button">Slideshow Mode</Link>
+                </div>
+                <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
               </div>
             </ProtectedRoute>
           }

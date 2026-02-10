@@ -25,7 +25,7 @@ const LoginPage = () => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1>ShareSpace</h1>
+        <h1>JDF</h1>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="password">Password</label>
