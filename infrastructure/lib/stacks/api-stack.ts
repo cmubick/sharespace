@@ -130,6 +130,35 @@ export class ApiStack extends Construct {
       memorySize: 256,
     })
 
+    const updateHandler = new lambda.Function(this, 'UpdateHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'lambdas/media/update.handler',
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_TABLE: mediaTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+    })
+
+    const deleteHandler = new lambda.Function(this, 'DeleteHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'lambdas/media/delete.handler',
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_TABLE: mediaTable.tableName,
+        MEDIA_BUCKET: mediaBucket.bucketName,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+    })
+
     const thumbnailHandler = new lambda.Function(this, 'ThumbnailHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'lambdas/media/thumbnail.handler',
@@ -190,6 +219,32 @@ export class ApiStack extends Construct {
       ],
     })
 
+    const updateIntegration = new apigateway.LambdaIntegration(updateHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
+          },
+        },
+      ],
+    })
+
+    const deleteIntegration = new apigateway.LambdaIntegration(deleteHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
+          },
+        },
+      ],
+    })
+
     // Media endpoints
     mediaResource.addMethod('POST', uploadIntegration, {
       methodResponses: [
@@ -223,7 +278,30 @@ export class ApiStack extends Construct {
 
     const mediaIdResource = mediaResource.addResource('{id}')
     this.addPlaceholderIntegration(mediaIdResource, 'GET', '/media/{id}')
-    this.addPlaceholderIntegration(mediaIdResource, 'DELETE', '/media/{id}')
+    mediaIdResource.addMethod('PUT', updateIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
+    })
+    mediaIdResource.addMethod('DELETE', deleteIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
+    })
 
     this.addPlaceholderIntegration(profileResource, 'GET', '/user/profile')
     this.addPlaceholderIntegration(profileResource, 'PUT', '/user/profile')
