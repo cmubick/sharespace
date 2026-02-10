@@ -90,6 +90,18 @@ const SlideshowPage = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [fetchMedia])
 
+  useEffect(() => {
+    const updateInitialVisibility = () => {
+      if (window.innerWidth <= 768) {
+        setUiVisible(false)
+      }
+    }
+
+    updateInitialVisibility()
+    window.addEventListener('resize', updateInitialVisibility)
+    return () => window.removeEventListener('resize', updateInitialVisibility)
+  }, [])
+
   // Handle sort order change
   const handleSortChange = useCallback(
     (newSort: SortOrder) => {

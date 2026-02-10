@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Link } from 'react-router-dom'
 import { clearSession } from './services/auth'
 import LoginPage from './pages/LoginPage'
@@ -12,12 +12,27 @@ function AppContent() {
   const navigate = useNavigate()
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
   const [logoFailed, setLogoFailed] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleLogout = () => {
     clearSession()
     localStorage.removeItem('sharespace_access')
     navigate('/login')
   }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false)
+      }
+    }
+
+    if (drawerOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [drawerOpen])
 
   return (
     <div className="app">
@@ -35,6 +50,13 @@ function AppContent() {
               />
             )}
           </div>
+          <button
+            className="hamburger"
+            aria-label="Open menu"
+            onClick={() => setDrawerOpen(true)}
+          >
+            ☰
+          </button>
           <nav className="app-nav">
             <Link to="/" className="nav-link">Home</Link>
             <Link to="/upload" className="nav-link">Upload</Link>
@@ -45,6 +67,27 @@ function AppContent() {
             </button>
           </nav>
         </header>
+      )}
+      {hasAccess && drawerOpen && (
+        <>
+          <div className="drawer-overlay" onClick={() => setDrawerOpen(false)} />
+          <aside className="drawer">
+            <nav className="drawer-nav">
+              <Link to="/upload" className="drawer-link" onClick={() => setDrawerOpen(false)}>
+                Upload Media
+              </Link>
+              <Link to="/gallery" className="drawer-link" onClick={() => setDrawerOpen(false)}>
+                View Gallery
+              </Link>
+              <Link to="/slideshow" className="drawer-link" onClick={() => setDrawerOpen(false)}>
+                Slideshow Mode
+              </Link>
+              <button className="drawer-link drawer-logout" onClick={() => { setDrawerOpen(false); handleLogout() }}>
+                Logout
+              </button>
+            </nav>
+          </aside>
+        </>
       )}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
