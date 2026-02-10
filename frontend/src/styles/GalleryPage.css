@@ -126,11 +126,11 @@
 }
 
 .year-header {
-  color: #fff;
+  color: #111;
   font-size: 1.5rem;
   margin: 0;
   padding-bottom: 0.75rem;
-  border-bottom: 2px solid #555;
+  border-bottom: 2px solid #1f1f1f;
   transition: border-color 0.3s ease;
 }
 
@@ -147,8 +147,8 @@
 
 /* Media Card */
 .media-card {
-  background-color: rgba(100, 100, 100, 0.1);
-  border: 1px solid #555;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -158,20 +158,20 @@
 }
 
 .media-card:hover {
-  border-color: #4a9eff;
-  box-shadow: 0 4px 16px rgba(74, 158, 255, 0.2);
+  border-color: #1f1f1f;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-4px);
 }
 
 .media-thumbnail {
   position: relative;
   aspect-ratio: 1;
-  background-color: #333;
+  background-color: #f2f2f2;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #555;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 /* Lazy Loading Images */
@@ -195,7 +195,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #333;
+  background-color: #f2f2f2;
 }
 
 .media-icon {
@@ -237,10 +237,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  background-color: #ffffff;
 }
 
 .filename {
-  color: #fff;
+  color: #111;
   margin: 0;
   font-size: 0.95rem;
   font-weight: 500;
@@ -254,14 +255,14 @@
 }
 
 .uploader {
-  color: #ccc;
+  color: #111;
   margin: 0;
   font-size: 0.85rem;
   font-weight: 500;
 }
 
 .caption {
-  color: #aaa;
+  color: #1a1a1a;
   margin: 0 !important;
   font-size: 0.8rem;
   overflow: hidden;

@@ -23,6 +23,7 @@ const SlideshowPage = () => {
   const [autoplay, setAutoplay] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
   const [uiVisible, setUiVisible] = useState(true)
+  const [lastInteraction, setLastInteraction] = useState(Date.now())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -30,6 +31,7 @@ const SlideshowPage = () => {
   const autoplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const uiHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const HIDE_DELAY_MS = 2500
 
   // Randomize media order
   const randomizeMedia = useCallback((items: MediaItem[]) => {
@@ -105,28 +107,38 @@ const SlideshowPage = () => {
     [media, randomizeMedia, sortMediaChronologically]
   )
 
-  // Show UI and reset timer
-  const showUI = useCallback(() => {
-    setUiVisible(true)
-
+  const scheduleHide = useCallback((interactionTime: number) => {
     if (uiHideTimerRef.current) {
       clearTimeout(uiHideTimerRef.current)
     }
 
     uiHideTimerRef.current = setTimeout(() => {
-      setUiVisible(false)
-    }, 5000)
-  }, [])
+      if (Date.now() - interactionTime >= HIDE_DELAY_MS) {
+        setUiVisible(false)
+      }
+    }, HIDE_DELAY_MS)
+  }, [HIDE_DELAY_MS])
+
+  const registerInteraction = useCallback(() => {
+    const now = Date.now()
+    setLastInteraction(now)
+    setUiVisible(true)
+    scheduleHide(now)
+  }, [scheduleHide])
 
   // Handle mouse/touch movement to show UI
   useEffect(() => {
-    const handleMouseMove = () => {
-      showUI()
-    }
+    const handleMouseMove = () => registerInteraction()
+    const handleTouchStart = () => registerInteraction()
 
     window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [showUI])
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchstart', handleTouchStart)
+    }
+  }, [registerInteraction])
 
   // Navigation functions (declare before use in keyboard handler)
   const nextSlide = useCallback(() => {
@@ -157,7 +169,7 @@ const SlideshowPage = () => {
   // Keyboard controls
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      showUI()
+      registerInteraction()
 
       switch (e.key) {
         case 'ArrowRight':
@@ -188,7 +200,7 @@ const SlideshowPage = () => {
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showUI, navigate, handleSortChange, nextSlide, previousSlide])
+  }, [registerInteraction, navigate, handleSortChange, nextSlide, previousSlide])
 
   // Prevent scrolling in fullscreen
   useEffect(() => {
@@ -201,6 +213,15 @@ const SlideshowPage = () => {
   const toggleAutoplay = useCallback(() => {
     setAutoplay((prev) => !prev)
   }, [])
+
+  useEffect(() => {
+    if (autoplay) {
+      const now = Date.now()
+      setUiVisible(true)
+      setLastInteraction(now)
+      scheduleHide(now)
+    }
+  }, [autoplay, scheduleHide])
 
   const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
 

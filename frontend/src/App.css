@@ -12,7 +12,7 @@
   align-items: center;
   padding: 20px 40px;
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 5px solid #1f1f1f;
   box-shadow: none;
 }
 

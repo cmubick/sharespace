@@ -10,6 +10,7 @@ import './App.css'
 function AppContent() {
   const navigate = useNavigate()
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
+  const logoUrl = `${import.meta.env.BASE_URL}assets/jdf.svg`
 
   const handleLogout = () => {
     clearSession()
@@ -22,7 +23,7 @@ function AppContent() {
       {hasAccess && (
         <header className="app-header">
           <div className="brand">
-            <img src="/assets/jdf.svg" alt="JDF" className="brand-logo" />
+            <img src={logoUrl} alt="JDF" className="brand-logo" />
           </div>
           <nav className="app-nav">
             <Link to="/" className="nav-link">Home</Link>
