@@ -98,22 +98,28 @@ function AppContent() {
             path="/"
             element={
               <ProtectedRoute>
-                <div className="app-container">
-                  <h2>Remembering Justin D. Fowler</h2>
-                  <p>
-                    This space is for everyone who knew and loved Justin
-                    to share photos, videos, and recordings so we can
-                    remember him together.
-                    <br />
-                    <br />
-                    Please upload anything you&apos;d like to share.
-                  </p>
-                  <div className="home-actions">
-                    <Link to="/upload" className="action-button">Upload Media</Link>
-                    <Link to="/gallery" className="action-button">View Gallery</Link>
-                    <Link to="/slideshow" className="action-button">Slideshow Mode</Link>
+                <div className="app-container home-hero">
+                  <div className="home-hero-bg" aria-hidden="true">
+                    <div className="corner-decor corner-left" />
+                    <div className="corner-decor corner-right" />
                   </div>
-                  <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
+                  <div className="home-hero-content">
+                    <h2>Remembering Justin D. Fowler</h2>
+                    <p>
+                      This space is for everyone who knew and loved Justin
+                      to share photos, videos, and recordings so we can
+                      remember him together.
+                      <br />
+                      <br />
+                      Please upload anything you&apos;d like to share.
+                    </p>
+                    <div className="home-actions">
+                      <Link to="/upload" className="action-button">Upload Media</Link>
+                      <Link to="/gallery" className="action-button">View Gallery</Link>
+                      <Link to="/slideshow" className="action-button">Slideshow Mode</Link>
+                    </div>
+                    <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
+                  </div>
                 </div>
               </ProtectedRoute>
             }
