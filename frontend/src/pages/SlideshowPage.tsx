@@ -20,6 +20,10 @@ const SlideshowPage = () => {
   const navigate = useNavigate()
   const [media, setMedia] = useState<MediaItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [displayIndex, setDisplayIndex] = useState(0)
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null)
+  const [nextReady, setNextReady] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const [autoplay, setAutoplay] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
   const [uiVisible, setUiVisible] = useState(true)
@@ -31,6 +35,7 @@ const SlideshowPage = () => {
   const uiHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const HIDE_DELAY_MS = 2500
+  const TRANSITION_MS = 900
 
   // Randomize media order
   const randomizeMedia = useCallback((items: MediaItem[]) => {
@@ -65,6 +70,9 @@ const SlideshowPage = () => {
 
       setMedia(sorted)
       setCurrentIndex((prev) => (sorted.length === 0 ? 0 : Math.min(prev, sorted.length - 1)))
+      setDisplayIndex(0)
+      setPendingIndex(null)
+      setNextReady(false)
     } catch (err) {
       console.error('Failed to load media:', err)
       setError('Failed to load slideshow')
@@ -107,6 +115,9 @@ const SlideshowPage = () => {
     (newSort: SortOrder) => {
       setSortOrder(newSort)
       setCurrentIndex(0)
+      setDisplayIndex(0)
+      setPendingIndex(null)
+      setNextReady(false)
       let sorted = media
       if (newSort === 'random') {
         sorted = randomizeMedia(media)
@@ -232,7 +243,66 @@ const SlideshowPage = () => {
     }
   }, [autoplay, scheduleHide])
 
-  const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
+  const resolveMediaUrl = useCallback((s3Key: string) => getMediaUrl(s3Key), [])
+
+  useEffect(() => {
+    if (media.length === 0) return
+    if (currentIndex === displayIndex) return
+    setPendingIndex(currentIndex)
+    setNextReady(false)
+  }, [currentIndex, displayIndex, media.length])
+
+  useEffect(() => {
+    if (pendingIndex === null) return
+    const nextItem = media[pendingIndex]
+    if (!nextItem) return
+
+    const nextUrl = resolveMediaUrl(nextItem.s3Key)
+
+    if (nextItem.mediaType.startsWith('image/')) {
+      const img = new Image()
+      img.onload = () => setNextReady(true)
+      img.src = nextUrl
+      return () => {
+        img.onload = null
+      }
+    }
+
+    if (nextItem.mediaType.startsWith('video/')) {
+      const video = document.createElement('video')
+      const handleLoaded = () => setNextReady(true)
+      video.preload = 'auto'
+      video.src = nextUrl
+      video.addEventListener('loadeddata', handleLoaded)
+      video.load()
+      return () => {
+        video.removeEventListener('loadeddata', handleLoaded)
+      }
+    }
+
+    setNextReady(true)
+  }, [pendingIndex, media, resolveMediaUrl])
+
+  useEffect(() => {
+    if (pendingIndex === null || !nextReady) return
+    setIsTransitioning(true)
+    const timer = setTimeout(() => {
+      setDisplayIndex(pendingIndex)
+      setPendingIndex(null)
+      setIsTransitioning(false)
+    }, TRANSITION_MS)
+
+    return () => clearTimeout(timer)
+  }, [pendingIndex, nextReady, TRANSITION_MS])
+
+  useEffect(() => {
+    if (media.length === 0) return
+    const nextIndex = (displayIndex + 1) % media.length
+    const nextItem = media[nextIndex]
+    if (!nextItem || !nextItem.mediaType.startsWith('image/')) return
+    const img = new Image()
+    img.src = resolveMediaUrl(nextItem.s3Key)
+  }, [displayIndex, media, resolveMediaUrl])
 
   if (loading) {
     return (
@@ -256,28 +326,62 @@ const SlideshowPage = () => {
     )
   }
 
-  const currentMedia = media[currentIndex]
+  const currentMedia = media[displayIndex]
+  const nextMedia = pendingIndex !== null ? media[pendingIndex] : null
   const isVideo = currentMedia.mediaType.startsWith('video/')
 
   return (
     <div className="slideshow-page">
       {/* Media Display */}
       <div className="slideshow-media">
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={resolveMediaUrl(currentMedia.s3Key)}
-            autoPlay
-            muted
-            loop
-            className="slideshow-video"
-          />
-        ) : (
-          <img
-            src={resolveMediaUrl(currentMedia.s3Key)}
-            alt={currentMedia.filename}
-            className="slideshow-image"
-          />
+        <div className={`media-layer ${isTransitioning ? 'fade-out' : 'fade-in'}`}>
+          {isVideo ? (
+            <video
+              ref={videoRef}
+              src={resolveMediaUrl(currentMedia.s3Key)}
+              autoPlay
+              muted
+              loop
+              className="slideshow-video"
+            />
+          ) : (
+            <>
+              <div
+                className="media-backdrop"
+                style={{ backgroundImage: `url(${resolveMediaUrl(currentMedia.s3Key)})` }}
+              />
+              <img
+                src={resolveMediaUrl(currentMedia.s3Key)}
+                alt={currentMedia.filename}
+                className="slideshow-image"
+              />
+            </>
+          )}
+        </div>
+        {nextMedia && (
+          <div className={`media-layer ${nextReady ? 'fade-in' : 'fade-preload'}`}>
+            {nextMedia.mediaType.startsWith('video/') ? (
+              <video
+                src={resolveMediaUrl(nextMedia.s3Key)}
+                autoPlay
+                muted
+                loop
+                className="slideshow-video"
+              />
+            ) : (
+              <>
+                <div
+                  className="media-backdrop"
+                  style={{ backgroundImage: `url(${resolveMediaUrl(nextMedia.s3Key)})` }}
+                />
+                <img
+                  src={resolveMediaUrl(nextMedia.s3Key)}
+                  alt={nextMedia.filename}
+                  className="slideshow-image"
+                />
+              </>
+            )}
+          </div>
         )}
       </div>
 
