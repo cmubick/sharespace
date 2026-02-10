@@ -28,6 +28,12 @@
   align-items: center;
 }
 
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
 .brand-logo {
   height: 40px;
   width: auto;

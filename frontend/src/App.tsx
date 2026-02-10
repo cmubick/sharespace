@@ -39,16 +39,18 @@ function AppContent() {
       {hasAccess && (
         <header className="app-header">
           <div className="brand">
-            {logoFailed ? (
-              <span className="brand-fallback">JDF</span>
-            ) : (
-              <img
-                src="/assets/jdf.svg"
-                alt="JDF"
-                className="brand-logo"
-                onError={() => setLogoFailed(true)}
-              />
-            )}
+            <Link to="/" className="brand-link" onClick={() => setDrawerOpen(false)}>
+              {logoFailed ? (
+                <span className="brand-fallback">JDF</span>
+              ) : (
+                <img
+                  src="/assets/jdf.svg"
+                  alt="JDF"
+                  className="brand-logo"
+                  onError={() => setLogoFailed(true)}
+                />
+              )}
+            </Link>
           </div>
           <button
             className="hamburger"
