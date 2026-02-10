@@ -21,7 +21,9 @@ function AppContent() {
     <div className="app">
       {hasAccess && (
         <header className="app-header">
-          <h1>JDF</h1>
+          <div className="brand">
+            <img src="/assets/jdf.svg" alt="JDF" className="brand-logo" />
+          </div>
           <nav className="app-nav">
             <Link to="/" className="nav-link">Home</Link>
             <Link to="/upload" className="nav-link">Upload</Link>

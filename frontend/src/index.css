@@ -3,9 +3,16 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1a1a1a;
+  color-scheme: light;
+  color: #111111;
+  background-color: #ffffff;
+
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f7;
+  --color-border: #e2e2e2;
+  --color-text: #111111;
+  --color-text-secondary: #4a4a4a;
+  --color-accent: #0ea5e9;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,7 +31,8 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #1a1a1a;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 #root {
@@ -34,12 +42,12 @@ body {
 
 a {
   font-weight: 500;
-  color: #0ea5e9;
+  color: var(--color-accent);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #06b6d4;
+  color: #0284c7;
 }
 
 h1 {
@@ -49,32 +57,22 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #c4c4c4;
+  background-color: #efefef;
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
