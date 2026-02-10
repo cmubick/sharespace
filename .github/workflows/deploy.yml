@@ -13,12 +13,12 @@ jobs:
       contents: read
     env:
       ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
-      VITE_API_URL: ${{ github.ref == 'refs/heads/main' && vars['VITE_API_URL_PROD'] || vars['VITE_API_URL_DEV'] }}
-      VITE_MEDIA_BASE_URL: ${{ github.ref == 'refs/heads/main' && vars['VITE_MEDIA_BASE_URL_PROD'] || vars['VITE_MEDIA_BASE_URL_DEV'] }}
-      FRONTEND_BUCKET: ${{ github.ref == 'refs/heads/main' && vars['FRONTEND_BUCKET_PROD'] || vars['FRONTEND_BUCKET_DEV'] }}
-      CLOUDFRONT_DISTRIBUTION_ID: ${{ github.ref == 'refs/heads/main' && vars['CLOUDFRONT_DISTRIBUTION_ID_PROD'] || vars['CLOUDFRONT_DISTRIBUTION_ID_DEV'] }}
-      ACM_CERTIFICATE_ARN: ${{ github.ref == 'refs/heads/main' && vars['ACM_CERTIFICATE_ARN'] || '' }}
-
+      VITE_API_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_API_URL_PROD || secrets.VITE_API_URL_DEV }}
+      VITE_MEDIA_BASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_MEDIA_BASE_URL_PROD || secrets.VITE_MEDIA_BASE_URL_DEV }}
+      FRONTEND_BUCKET: ${{ github.ref == 'refs/heads/main' && secrets.FRONTEND_BUCKET_PROD || secrets.FRONTEND_BUCKET_DEV }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ github.ref == 'refs/heads/main' && secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD || secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
+      ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
+      
     steps:
       - name: Checkout
         uses: actions/checkout@v4
