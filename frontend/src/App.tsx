@@ -89,57 +89,64 @@ function AppContent() {
           </aside>
         </>
       )}
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <div className="app-container">
-                <h2>Remembering Justin D. Fowler</h2>
-                <p>
-                  This space is for everyone who knew and loved Justin
-                  to share photos, videos, and recordings so we can
-                  remember him together.
-                  <br />
-                  <br />
-                  Please upload anything you&apos;d like to share.
-                </p>
-                <div className="home-actions">
-                  <Link to="/upload" className="action-button">Upload Media</Link>
-                  <Link to="/gallery" className="action-button">View Gallery</Link>
-                  <Link to="/slideshow" className="action-button">Slideshow Mode</Link>
+      <main className="app-main">
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="app-container">
+                  <h2>Remembering Justin D. Fowler</h2>
+                  <p>
+                    This space is for everyone who knew and loved Justin
+                    to share photos, videos, and recordings so we can
+                    remember him together.
+                    <br />
+                    <br />
+                    Please upload anything you&apos;d like to share.
+                  </p>
+                  <div className="home-actions">
+                    <Link to="/upload" className="action-button">Upload Media</Link>
+                    <Link to="/gallery" className="action-button">View Gallery</Link>
+                    <Link to="/slideshow" className="action-button">Slideshow Mode</Link>
+                  </div>
+                  <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
                 </div>
-                <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/upload"
-          element={
-            <ProtectedRoute>
-              <UploadPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/gallery"
-          element={
-            <ProtectedRoute>
-              <GalleryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/slideshow"
-          element={
-            <ProtectedRoute>
-              <SlideshowPage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <UploadPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gallery"
+            element={
+              <ProtectedRoute>
+                <GalleryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/slideshow"
+            element={
+              <ProtectedRoute>
+                <SlideshowPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+      <footer className="site-footer">
+        <p>
+          Justin’s band: <a href="https://woodenindianburialground.bandcamp.com/" target="_blank" rel="noopener noreferrer">Wooden Indian Burial Ground</a>
+        </p>
+      </footer>
     </div>
   )
 }

@@ -110,6 +110,12 @@ const SlideshowPage = () => {
     return () => window.removeEventListener('resize', updateInitialVisibility)
   }, [])
 
+  useEffect(() => {
+    const now = Date.now()
+    setUiVisible(true)
+    scheduleHide(now)
+  }, [scheduleHide])
+
   // Handle sort order change
   const handleSortChange = useCallback(
     (newSort: SortOrder) => {

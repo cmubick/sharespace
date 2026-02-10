@@ -74,6 +74,7 @@
   align-items: center;
   justify-content: center;
   background: #000;
+  z-index: 1;
 }
 
 .media-layer {
@@ -139,6 +140,7 @@
   padding: 2rem;
   transition: opacity 0.6s ease;
   pointer-events: none;
+  z-index: 200;
 }
 
 .slideshow-controls.hidden {
@@ -326,6 +328,7 @@
   height: 4px;
   background: rgba(0, 0, 0, 0.08);
   transition: opacity 0.3s ease;
+  z-index: 210;
 }
 
 .slideshow-progress.visible {
@@ -352,6 +355,7 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
+  z-index: 210;
 }
 
 .hints-content {
