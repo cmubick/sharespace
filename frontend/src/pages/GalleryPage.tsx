@@ -112,7 +112,7 @@ const GalleryPage = () => {
       }
       const data = await response.json()
       const items = (data.items || []) as MediaItem[]
-      const nextLastKey = data.lastKey || null
+      const nextLastKey = data.lastKey && Object.keys(data.lastKey).length > 0 ? data.lastKey : null
 
       setItems((prev) => (reset ? items : [...prev, ...items]))
       setLastKey(nextLastKey)

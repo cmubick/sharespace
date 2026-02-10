@@ -18,6 +18,7 @@ type SortOrder = 'chronological' | 'random'
 
 const SlideshowPage = () => {
   const navigate = useNavigate()
+  const PAGE_SIZE = 30
   const [media, setMedia] = useState<MediaItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
@@ -28,12 +29,17 @@ const SlideshowPage = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
   const [uiVisible, setUiVisible] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
+  const [hasMore, setHasMore] = useState(true)
 
   // Timers
   const autoplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const uiHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const isFetchingRef = useRef(false)
+  const currentItemIdRef = useRef<string | null>(null)
   const HIDE_DELAY_MS = 2500
   const TRANSITION_MS = 900
 
@@ -45,58 +51,103 @@ const SlideshowPage = () => {
   // Sort media chronologically
   const sortMediaChronologically = useCallback((items: MediaItem[]) => {
     return [...items].sort((a, b) => {
-      const yearA = a.year || 9999
-      const yearB = b.year || 9999
-      return yearB - yearA
+      const yearA = a.year ?? 9999
+      const yearB = b.year ?? 9999
+      if (yearA !== yearB) return yearA - yearB
+      const aTime = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0
+      const bTime = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0
+      return aTime - bTime
     })
   }, [])
 
-  const fetchMedia = useCallback(async () => {
+  const encodeLastKey = (key: Record<string, unknown>) => btoa(JSON.stringify(key))
+
+  const insertRandomly = useCallback((existing: MediaItem[], incoming: MediaItem[]) => {
+    const next = [...existing]
+    incoming.forEach((item) => {
+      const index = Math.floor(Math.random() * (next.length + 1))
+      next.splice(index, 0, item)
+    })
+    return next
+  }, [])
+
+  const loadMediaPage = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
+    if (isFetchingRef.current) return
+    if (!reset && !hasMore) return
+
+    isFetchingRef.current = true
     try {
-      setLoading(true)
+      if (reset) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
       setError('')
 
-      const response = await fetch(getApiUrl('/media'))
+      const params = new URLSearchParams()
+      params.set('limit', PAGE_SIZE.toString())
+      if (!reset && lastKey) {
+        params.set('lastKey', encodeLastKey(lastKey))
+      }
+
+      const response = await fetch(`${getApiUrl('/media')}?${params.toString()}`)
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}))
         throw new Error(errorBody.error || 'Failed to fetch media')
       }
       const data = await response.json()
       const items = (data.items || []) as MediaItem[]
+      const nextLastKey = data.lastKey && Object.keys(data.lastKey).length > 0 ? data.lastKey : null
 
-      const sorted = sortOrder === 'random'
-        ? randomizeMedia(items)
-        : sortMediaChronologically(items)
+      setLastKey(nextLastKey)
+      setHasMore(Boolean(nextLastKey))
 
-      setMedia(sorted)
-      setCurrentIndex((prev) => (sorted.length === 0 ? 0 : Math.min(prev, sorted.length - 1)))
-      setDisplayIndex(0)
-      setPendingIndex(null)
-      setNextReady(false)
+      if (reset) {
+        const sorted = sortOrder === 'random'
+          ? randomizeMedia(items)
+          : sortMediaChronologically(items)
+        setMedia(sorted)
+        setCurrentIndex(0)
+        setDisplayIndex(0)
+        setPendingIndex(null)
+        setNextReady(false)
+        setIsTransitioning(false)
+      } else {
+        const currentId = currentItemIdRef.current
+        setMedia((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id))
+          const unique = items.filter((item) => !existingIds.has(item.id))
+          if (unique.length === 0) return prev
+          const next = sortOrder === 'random'
+            ? insertRandomly(prev, unique)
+            : [...prev, ...unique]
+          if (currentId) {
+            const newIndex = next.findIndex((item) => item.id === currentId)
+            if (newIndex >= 0) {
+              setCurrentIndex(newIndex)
+              setDisplayIndex(newIndex)
+            }
+          }
+          return next
+        })
+      }
     } catch (err) {
       console.error('Failed to load media:', err)
       setError('Failed to load slideshow')
     } finally {
-      setLoading(false)
+      if (reset) {
+        setLoading(false)
+      } else {
+        setLoadingMore(false)
+      }
+      isFetchingRef.current = false
     }
-  }, [randomizeMedia, sortMediaChronologically, sortOrder])
+  }, [PAGE_SIZE, hasMore, insertRandomly, lastKey, randomizeMedia, sortMediaChronologically, sortOrder])
 
   // Load media data
   useEffect(() => {
-    fetchMedia()
-  }, [fetchMedia])
-
-  // Refetch when slideshow becomes visible again
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        fetchMedia()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [fetchMedia])
+    loadMediaPage({ reset: true })
+  }, [loadMediaPage])
 
   const scheduleHide = useCallback((interactionTime: number) => {
     if (uiHideTimerRef.current) {
@@ -138,17 +189,29 @@ const SlideshowPage = () => {
   const handleSortChange = useCallback(
     (newSort: SortOrder) => {
       setSortOrder(newSort)
-      setCurrentIndex(0)
-      setDisplayIndex(0)
       setPendingIndex(null)
       setNextReady(false)
-      let sorted = media
-      if (newSort === 'random') {
-        sorted = randomizeMedia(media)
-      } else {
-        sorted = sortMediaChronologically(media)
-      }
-      setMedia(sorted)
+      setIsTransitioning(false)
+      setMedia((prev) => {
+        const currentId = currentItemIdRef.current
+        const sorted = newSort === 'random'
+          ? randomizeMedia(prev)
+          : sortMediaChronologically(prev)
+        if (currentId) {
+          const newIndex = sorted.findIndex((item) => item.id === currentId)
+          if (newIndex >= 0) {
+            setCurrentIndex(newIndex)
+            setDisplayIndex(newIndex)
+          } else {
+            setCurrentIndex(0)
+            setDisplayIndex(0)
+          }
+        } else {
+          setCurrentIndex(0)
+          setDisplayIndex(0)
+        }
+        return sorted
+      })
     },
     [media, randomizeMedia, sortMediaChronologically]
   )
@@ -257,6 +320,17 @@ const SlideshowPage = () => {
     setPendingIndex(currentIndex)
     setNextReady(false)
   }, [currentIndex, displayIndex, media.length])
+
+  useEffect(() => {
+    currentItemIdRef.current = media[displayIndex]?.id ?? null
+  }, [displayIndex, media])
+
+  useEffect(() => {
+    if (!hasMore) return
+    if (media.length - displayIndex <= 3) {
+      loadMediaPage()
+    }
+  }, [displayIndex, hasMore, loadMediaPage, media.length])
 
   useEffect(() => {
     if (pendingIndex === null) return
@@ -428,7 +502,7 @@ const SlideshowPage = () => {
 
           <div className="center-info">
             <div className="media-counter">
-              {currentIndex + 1} / {media.length}
+              {currentIndex + 1} / {media.length}{loadingMore ? ' • Loading more…' : ''}
             </div>
             <button
               className={`control-btn autoplay-btn ${autoplay ? 'active' : ''}`}
