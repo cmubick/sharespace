@@ -62,9 +62,9 @@ export class CdnStack extends Construct {
           },
           {
             httpStatus: 404,
-            responseHttpStatus: 404,
-            responsePagePath: '/404.html',
-            ttl: cdk.Duration.minutes(5),
+            responseHttpStatus: 200,
+            responsePagePath: '/index.html',
+            ttl: cdk.Duration.minutes(0),
           },
         ],
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
