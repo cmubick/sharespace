@@ -4,7 +4,7 @@ import {
   Context,
 } from 'aws-lambda'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb'
 import { createErrorResponse, createSuccessResponse, createOptionsResponse } from '../../shared/utils'
 
 const dynamoDb = DynamoDBDocumentClient.from(
@@ -41,37 +41,82 @@ export const handler = async (
 
     // Validate pagination params
     if (page < 1 || limit < 1 || limit > 100) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          error: 'Invalid pagination parameters',
-          details: 'page >= 1, 1 <= limit <= 100',
-        }),
-      }
+      return createErrorResponse(
+        new Error('Invalid pagination parameters: page >= 1, 1 <= limit <= 100'),
+        400
+      )
     }
+
+    const yearParam = event.queryStringParameters?.year
+    const uploaderParam = event.queryStringParameters?.uploader
 
     console.log('Fetching media list:', {
       page,
       limit,
+      year: yearParam,
+      uploader: uploaderParam,
     })
 
-    const queryResult = await dynamoDb.send(
-      new QueryCommand({
-        TableName: MEDIA_TABLE,
-        KeyConditionExpression: 'pk = :pk',
-        ExpressionAttributeValues: {
-          ':pk': 'MEDIA',
-        },
-        Limit: limit,
-        ScanIndexForward: false,
-      })
-    )
+    let rawItems: any[] = []
 
-    const items = (queryResult.Items || []).map((item: any) => ({
+    if (yearParam && !Number.isNaN(Number(yearParam)) && !uploaderParam) {
+      const year = Number(yearParam)
+      const queryResult = await dynamoDb.send(
+        new QueryCommand({
+          TableName: MEDIA_TABLE,
+          IndexName: 'GSI1',
+          KeyConditionExpression: '#year = :year',
+          ExpressionAttributeNames: {
+            '#year': 'year',
+          },
+          ExpressionAttributeValues: {
+            ':year': year,
+          },
+          Limit: limit,
+          ScanIndexForward: false,
+        })
+      )
+      rawItems = queryResult.Items || []
+    } else if (uploaderParam && !yearParam) {
+      const queryResult = await dynamoDb.send(
+        new QueryCommand({
+          TableName: MEDIA_TABLE,
+          IndexName: 'GSI2',
+          KeyConditionExpression: 'uploaderName = :uploaderName',
+          ExpressionAttributeValues: {
+            ':uploaderName': uploaderParam,
+          },
+          Limit: limit,
+          ScanIndexForward: false,
+        })
+      )
+      rawItems = queryResult.Items || []
+    } else {
+      const scanResult = await dynamoDb.send(
+        new ScanCommand({
+          TableName: MEDIA_TABLE,
+          Limit: limit,
+        })
+      )
+      rawItems = scanResult.Items || []
+
+      if (yearParam && !Number.isNaN(Number(yearParam))) {
+        const year = Number(yearParam)
+        rawItems = rawItems.filter(item => item.year === year)
+      }
+
+      if (uploaderParam) {
+        rawItems = rawItems.filter(item => item.uploaderName === uploaderParam)
+      }
+
+      rawItems.sort((a, b) => {
+        const aTime = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0
+        const bTime = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0
+        return bTime - aTime
+      })
+    }
+
+    const items = rawItems.map((item: any) => ({
       id: item.mediaId,
       filename: item.filename,
       uploader: item.uploaderName,

@@ -4,7 +4,7 @@
 
 // Get API endpoint from environment or use relative path for local development
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
-const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || ''
+const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'https://media.domain.com'
 
 export const apiConfig = {
   baseUrl: API_BASE_URL,

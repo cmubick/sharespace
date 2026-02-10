@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getApiUrl, getMediaUrl } from '../services/api'
 import '../styles/SlideshowPage.css'
 
 interface MediaItem {
@@ -34,59 +35,32 @@ const SlideshowPage = () => {
   useEffect(() => {
     const loadMedia = async () => {
       try {
-        // TODO: Replace with actual API endpoint
-        const mockData: MediaItem[] = [
-          {
-            id: '550e8400-e29b-41d4-a716-446655440000',
-            filename: 'vacation-2024.jpg',
-            uploader: 'John Doe',
-            uploadTimestamp: new Date().toISOString(),
-            mediaType: 'image/jpeg',
-            s3Key: 'media/550e8400-e29b-41d4-a716-446655440000.jpg',
-            caption: 'Summer vacation at the beach',
-            year: 2024,
-          },
-          {
-            id: '550e8400-e29b-41d4-a716-446655440001',
-            filename: 'family-photo.jpg',
-            uploader: 'Jane Smith',
-            uploadTimestamp: new Date().toISOString(),
-            mediaType: 'image/jpeg',
-            s3Key: 'media/550e8400-e29b-41d4-a716-446655440001.jpg',
-            caption: 'Family gathering',
-            year: 2023,
-          },
-          {
-            id: '550e8400-e29b-41d4-a716-446655440002',
-            filename: 'old-photo.png',
-            uploader: 'Mike Johnson',
-            uploadTimestamp: new Date().toISOString(),
-            mediaType: 'image/png',
-            s3Key: 'media/550e8400-e29b-41d4-a716-446655440002.png',
-            year: 2022,
-          },
-          {
-            id: '550e8400-e29b-41d4-a716-446655440003',
-            filename: 'video.mp4',
-            uploader: 'Sarah Lee',
-            uploadTimestamp: new Date().toISOString(),
-            mediaType: 'video/mp4',
-            s3Key: 'media/550e8400-e29b-41d4-a716-446655440003.mp4',
-            caption: 'Fun video',
-          },
-        ]
+        setLoading(true)
+        setError('')
 
-        setMedia(mockData)
-        setLoading(false)
+        const response = await fetch(getApiUrl('/media'))
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}))
+          throw new Error(errorBody.error || 'Failed to fetch media')
+        }
+        const data = await response.json()
+        const items = (data.items || []) as MediaItem[]
+
+        const sorted = sortOrder === 'random'
+          ? randomizeMedia(items)
+          : sortMediaChronologically(items)
+
+        setMedia(sorted)
       } catch (err) {
         console.error('Failed to load media:', err)
         setError('Failed to load slideshow')
+      } finally {
         setLoading(false)
       }
     }
 
     loadMedia()
-  }, [])
+  }, [randomizeMedia, sortMediaChronologically, sortOrder])
 
   // Randomize media order
   const randomizeMedia = useCallback((items: MediaItem[]) => {
@@ -215,10 +189,7 @@ const SlideshowPage = () => {
     setAutoplay((prev) => !prev)
   }, [])
 
-  const getMediaUrl = (s3Key: string) => {
-    // TODO: Replace with actual S3 CloudFront URL
-    return `https://via.placeholder.com/1920x1080?text=${encodeURIComponent(s3Key)}`
-  }
+  const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
 
   if (loading) {
     return (
@@ -243,7 +214,7 @@ const SlideshowPage = () => {
   }
 
   const currentMedia = media[currentIndex]
-  const isVideo = currentMedia.mediaType === 'video/mp4'
+  const isVideo = currentMedia.mediaType.startsWith('video/')
 
   return (
     <div className="slideshow-page">
@@ -252,7 +223,7 @@ const SlideshowPage = () => {
         {isVideo ? (
           <video
             ref={videoRef}
-            src={getMediaUrl(currentMedia.s3Key)}
+            src={resolveMediaUrl(currentMedia.s3Key)}
             autoPlay
             muted
             loop
@@ -260,7 +231,7 @@ const SlideshowPage = () => {
           />
         ) : (
           <img
-            src={getMediaUrl(currentMedia.s3Key)}
+            src={resolveMediaUrl(currentMedia.s3Key)}
             alt={currentMedia.filename}
             className="slideshow-image"
           />

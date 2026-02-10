@@ -32,8 +32,6 @@ interface UploadRequest {
   uploaderName: string
   caption?: string
   year?: number
-  originalYear?: number
-  album?: string
 }
 
 interface UploadResponse {
@@ -45,19 +43,13 @@ interface UploadResponse {
 }
 
 interface MediaMetadata {
-  pk: 'MEDIA'
-  sk: string
   mediaId: string
-  filename: string
   uploaderName: string
   uploadTimestamp: string
   mediaType: 'image' | 'video' | 'audio'
   s3Key: string
-  fileSize: number
   caption?: string
   year?: number
-  originalYear?: number
-  album?: string
 }
 
 /**
@@ -113,8 +105,6 @@ export const handler = async (
       uploaderName,
       caption,
       year,
-      originalYear,
-      album,
     } = uploadRequest
 
     // Validate filename
@@ -175,18 +165,31 @@ export const handler = async (
       )
     }
 
-    if (originalYear !== undefined && (typeof originalYear !== 'number' || originalYear < 1900 || originalYear > 2100)) {
-      return createErrorResponse(
-        new Error('Original year must be between 1900 and 2100'),
-        400
-      )
-    }
-
-    // Generate unique media ID and S3 object key
+    // Generate unique media ID and timestamp
     const mediaId = uuidv4()
     const timestamp = new Date().toISOString()
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
     const s3Key = `uploads/${mediaId}/${sanitizedFilename}`
+
+    // Store metadata in DynamoDB
+    const mediaMetadata: MediaMetadata = {
+      mediaId,
+      uploaderName,
+      uploadTimestamp: timestamp,
+      mediaType,
+      s3Key,
+      ...(caption && { caption }),
+      ...(year !== undefined && { year }),
+    }
+
+    console.log('Storing metadata in DynamoDB:', mediaMetadata)
+
+    await dynamoDb.send(
+      new PutCommand({
+        TableName: MEDIA_TABLE,
+        Item: mediaMetadata,
+      })
+    )
 
     console.log('Generating pre-signed URL:', {
       mediaId,
@@ -195,7 +198,6 @@ export const handler = async (
       uploaderName,
     })
 
-    // Generate pre-signed PUT URL
     const putCommand = new PutObjectCommand({
       Bucket: MEDIA_BUCKET,
       Key: s3Key,
@@ -210,32 +212,6 @@ export const handler = async (
     const presignedUrl = await getSignedUrl(s3Client, putCommand, {
       expiresIn: PRESIGNED_URL_EXPIRY,
     })
-
-    // Store metadata in DynamoDB
-    const mediaMetadata: MediaMetadata = {
-      pk: 'MEDIA',
-      sk: mediaId,
-      mediaId,
-      filename,
-      uploaderName,
-      uploadTimestamp: timestamp,
-      mediaType,
-      s3Key,
-      fileSize,
-      ...(caption && { caption }),
-      ...(year !== undefined && { year }),
-      ...(originalYear !== undefined && { originalYear }),
-      ...(album && { album }),
-    }
-
-    console.log('Storing metadata in DynamoDB:', mediaMetadata)
-
-    await dynamoDb.send(
-      new PutCommand({
-        TableName: MEDIA_TABLE,
-        Item: mediaMetadata,
-      })
-    )
 
     const response: UploadResponse = {
       mediaId,
