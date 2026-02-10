@@ -42,8 +42,9 @@ const MediaViewer = ({ media, onClose }: MediaViewerProps) => {
   const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
 
   const getMediaIcon = (mediaType: string) => {
-    if (mediaType.startsWith('image/')) return '🖼️'
-    if (mediaType === 'video/mp4') return '🎬'
+    if (mediaType === 'image' || mediaType.startsWith('image/')) return '🖼️'
+    if (mediaType === 'video' || mediaType.startsWith('video/')) return '🎬'
+    if (mediaType === 'audio' || mediaType.startsWith('audio/')) return '🎧'
     return '📄'
   }
 
@@ -72,13 +73,13 @@ const MediaViewer = ({ media, onClose }: MediaViewerProps) => {
 
         {/* Media Display */}
         <div className="modal-media">
-          {media.mediaType.startsWith('image/') ? (
+          {media.mediaType === 'image' || media.mediaType.startsWith('image/') ? (
             <img
               src={resolveMediaUrl(media.s3Key)}
               alt={media.filename}
               className="modal-image"
             />
-          ) : media.mediaType === 'video/mp4' ? (
+          ) : media.mediaType === 'video' || media.mediaType.startsWith('video/') ? (
             <div className="modal-video-placeholder">
               <span className="media-icon">🎬</span>
               <p>{media.filename}</p>

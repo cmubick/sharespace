@@ -131,8 +131,9 @@ const GalleryPage = () => {
   }
 
   const getMediaIcon = (mediaType: string) => {
-    if (mediaType.startsWith('image/')) return '🖼️'
-    if (mediaType === 'video/mp4') return '🎬'
+    if (mediaType === 'image' || mediaType.startsWith('image/')) return '🖼️'
+    if (mediaType === 'video' || mediaType.startsWith('video/')) return '🎬'
+    if (mediaType === 'audio' || mediaType.startsWith('audio/')) return '🎧'
     return '📄'
   }
 
@@ -185,7 +186,7 @@ const GalleryPage = () => {
                       }}
                     >
                       <div className="media-thumbnail">
-                        {item.mediaType.startsWith('image/') ? (
+                        {item.mediaType === 'image' || item.mediaType.startsWith('image/') ? (
                           <img
                             ref={(el) => {
                               if (el) observeImage(item.id, el)
