@@ -123,6 +123,7 @@ export const handler = async (
       uploadTimestamp: item.uploadTimestamp,
       mediaType: item.mediaType,
       s3Key: item.s3Key,
+      thumbnailKey: item.thumbnailKey,
       caption: item.caption,
       year: item.year,
     }))
