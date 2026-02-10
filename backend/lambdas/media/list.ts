@@ -4,7 +4,7 @@ import {
   Context,
 } from 'aws-lambda'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb'
 import { createErrorResponse, createSuccessResponse, createOptionsResponse } from '../../shared/utils'
 
 const dynamoDb = DynamoDBDocumentClient.from(
@@ -126,23 +126,17 @@ export const handler = async (
         lastEvaluatedKey,
       })
     } else {
-      const queryParams = {
+      const scanParams = {
         TableName: MEDIA_TABLE,
-        IndexName: 'GSI3',
-        KeyConditionExpression: 'gsi3pk = :gsi3pk',
-        ExpressionAttributeValues: {
-          ':gsi3pk': 'MEDIA',
-        },
         Limit: limit,
-        ScanIndexForward: true,
         ExclusiveStartKey: exclusiveStartKey,
       }
 
-      console.log('DynamoDB query (chronological):', queryParams)
-      const queryResult = await dynamoDb.send(new QueryCommand(queryParams))
-      rawItems = queryResult.Items || []
-      lastEvaluatedKey = queryResult.LastEvaluatedKey
-      console.log('DynamoDB result (chronological):', {
+      console.log('DynamoDB scan (all media):', scanParams)
+      const scanResult = await dynamoDb.send(new ScanCommand(scanParams))
+      rawItems = scanResult.Items || []
+      lastEvaluatedKey = scanResult.LastEvaluatedKey
+      console.log('DynamoDB result (all media):', {
         count: rawItems.length,
         lastEvaluatedKey,
       })
@@ -150,6 +144,14 @@ export const handler = async (
 
     const items = rawItems
       .filter((item) => !item.hidden)
+      .sort((a, b) => {
+        const yearA = typeof a.year === 'number' ? a.year : 9999
+        const yearB = typeof b.year === 'number' ? b.year : 9999
+        if (yearA !== yearB) return yearA - yearB
+        const aTime = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0
+        const bTime = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0
+        return aTime - bTime
+      })
       .map((item: any) => ({
       id: item.mediaId,
       filename: item.filename,
