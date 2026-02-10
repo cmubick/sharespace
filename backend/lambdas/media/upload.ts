@@ -8,7 +8,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
-import { createSuccessResponse, createErrorResponse, validateRequiredFields } from '../../shared/utils'
+import { createSuccessResponse, createErrorResponse, createOptionsResponse, validateRequiredFields } from '../../shared/utils'
 
 // AWS clients
 const s3Client = new S3Client({
@@ -64,6 +64,10 @@ export const handler = async (
   context: Context
 ): Promise<APIGatewayProxyResult> => {
   try {
+    if (event.httpMethod === 'OPTIONS') {
+      return createOptionsResponse()
+    }
+
     console.log('Upload initiation request:', {
       requestId: context.awsRequestId,
       path: event.path,

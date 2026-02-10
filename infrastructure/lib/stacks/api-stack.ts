@@ -55,15 +55,9 @@ export class ApiStack extends Construct {
         }),
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: [
-          'Content-Type',
-          'Authorization',
-          'X-Amz-Date',
-          'X-Api-Key',
-          'X-Amz-Security-Token',
-        ],
+        allowOrigins: ['https://itsonlycastlesburning.com'],
+        allowMethods: ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE'],
+        allowHeaders: ['Content-Type', 'Authorization'],
         statusCode: 200,
       },
     })
@@ -72,20 +66,18 @@ export class ApiStack extends Construct {
     this.api.addGatewayResponse('Default4xxWithCors', {
       type: apigateway.ResponseType.DEFAULT_4XX,
       responseHeaders: {
-        'Access-Control-Allow-Origin': "'*'",
-        'Access-Control-Allow-Headers':
-          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-        'Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+        'Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+        'Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+        'Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
       },
     })
 
     this.api.addGatewayResponse('Default5xxWithCors', {
       type: apigateway.ResponseType.DEFAULT_5XX,
       responseHeaders: {
-        'Access-Control-Allow-Origin': "'*'",
-        'Access-Control-Allow-Headers':
-          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-        'Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'",
+        'Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+        'Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+        'Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
       },
     })
 
