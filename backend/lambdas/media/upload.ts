@@ -43,6 +43,8 @@ interface UploadResponse {
 }
 
 interface MediaMetadata {
+  pk: 'MEDIA'
+  sk: string
   mediaId: string
   uploaderName: string
   uploadTimestamp: string
@@ -173,6 +175,8 @@ export const handler = async (
 
     // Store metadata in DynamoDB
     const mediaMetadata: MediaMetadata = {
+      pk: 'MEDIA',
+      sk: mediaId,
       mediaId,
       uploaderName,
       uploadTimestamp: timestamp,
