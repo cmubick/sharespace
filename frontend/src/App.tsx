@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Link } from 'react-router-dom'
 import { clearSession } from './services/auth'
 import LoginPage from './pages/LoginPage'
@@ -10,7 +11,7 @@ import './App.css'
 function AppContent() {
   const navigate = useNavigate()
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
-  const logoUrl = `${import.meta.env.BASE_URL}assets/jdf.svg`
+  const [logoFailed, setLogoFailed] = useState(false)
 
   const handleLogout = () => {
     clearSession()
@@ -23,7 +24,16 @@ function AppContent() {
       {hasAccess && (
         <header className="app-header">
           <div className="brand">
-            <img src={logoUrl} alt="JDF" className="brand-logo" />
+            {logoFailed ? (
+              <span className="brand-fallback">JDF</span>
+            ) : (
+              <img
+                src="/assets/jdf.svg"
+                alt="JDF"
+                className="brand-logo"
+                onError={() => setLogoFailed(true)}
+              />
+            )}
           </div>
           <nav className="app-nav">
             <Link to="/" className="nav-link">Home</Link>
