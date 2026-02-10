@@ -126,14 +126,14 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2));
   padding: 1rem;
   margin: -2rem -2rem 0 -2rem;
   padding-top: 2rem;
 }
 
 .media-title {
-  color: #fff;
+  color: #111;
   font-size: 1.2rem;
   font-weight: 500;
   flex: 1;
@@ -149,21 +149,21 @@
 
 /* Control Button */
 .control-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e0e0e0;
+  color: #111;
   padding: 0.75rem 1.25rem;
   border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s ease;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
   font-weight: 600;
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 1);
+  border-color: #cfcfcf;
 }
 
 .control-btn:active {
@@ -190,14 +190,14 @@
   font-size: 2.5rem;
   padding: 1rem 1.5rem;
   min-width: 80px;
-  background: rgba(74, 158, 255, 0.15);
-  border: 2px solid rgba(74, 158, 255, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #e0e0e0;
 }
 
 .nav-btn:hover {
-  background: rgba(74, 158, 255, 0.25);
-  border-color: rgba(74, 158, 255, 0.6);
-  box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
+  background: rgba(255, 255, 255, 1);
+  border-color: #cfcfcf;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
 }
 
 .nav-btn.next {
@@ -218,7 +218,7 @@
 }
 
 .media-counter {
-  color: #fff;
+  color: #111;
   font-size: 1.2rem;
   font-weight: 600;
   text-align: center;
@@ -227,31 +227,31 @@
 .autoplay-btn {
   min-width: 60px;
   font-size: 1.2rem;
-  background: rgba(74, 158, 255, 0.1);
-  border: 2px solid rgba(74, 158, 255, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #e0e0e0;
   padding: 0.75rem 1.25rem;
 }
 
 .autoplay-btn.active {
-  background: rgba(74, 158, 255, 0.3);
-  border-color: rgba(74, 158, 255, 0.8);
-  box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
+  background: rgba(255, 255, 255, 1);
+  border-color: #cfcfcf;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.12);
 }
 
 .autoplay-btn:hover {
-  box-shadow: 0 0 15px rgba(74, 158, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
 }
 
 /* Bottom Bar */
 .controls-bottom {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.2));
   padding: 1rem;
   margin: 0 -2rem -2rem -2rem;
   padding-bottom: 2rem;
 }
 
 .media-info {
-  color: #ccc;
+  color: #111;
   font-size: 0.95rem;
 }
 
@@ -266,13 +266,13 @@
 }
 
 .info-row .label {
-  color: #999;
+  color: #222;
   min-width: 60px;
   font-weight: 600;
 }
 
 .info-row .value {
-  color: #fff;
+  color: #111;
   flex: 1;
   word-break: break-word;
 }
@@ -284,7 +284,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.08);
   transition: opacity 0.3s ease;
 }
 
@@ -315,13 +315,13 @@
 }
 
 .hints-content {
-  background: rgba(0, 0, 0, 0.7);
-  color: #ccc;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-size: 0.9rem;
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e0e0e0;
   animation: slideIn 0.3s ease;
 }
 
@@ -341,7 +341,7 @@
 }
 
 .hints-content strong {
-  color: #fff;
+  color: #000;
 }
 
 /* Responsive Design */
