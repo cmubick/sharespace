@@ -8,6 +8,7 @@ import { Construct } from 'constructs'
 import { EnvironmentConfig } from '../config'
 
 import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 
 export interface ApiStackProps {
@@ -128,6 +129,30 @@ export class ApiStack extends Construct {
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
     })
+
+    const thumbnailHandler = new lambda.Function(this, 'ThumbnailHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'lambdas/media/thumbnail.handler',
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_BUCKET: mediaBucket.bucketName,
+        MEDIA_TABLE: mediaTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
+    })
+
+    mediaBucket.grantRead(thumbnailHandler, 'uploads/*')
+    mediaBucket.grantPut(thumbnailHandler, 'thumbnails/*')
+
+    mediaBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(thumbnailHandler),
+      { prefix: 'uploads/' }
+    )
 
     // API Gateway resources
     const authResource = this.api.root.addResource('auth')

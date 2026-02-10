@@ -13,6 +13,7 @@ jobs:
       contents: read
     env:
       ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      LAMBDA_PLATFORM: linux
       VITE_API_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_API_URL_PROD || secrets.VITE_API_URL_DEV }}
       VITE_MEDIA_BASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.VITE_MEDIA_BASE_URL_PROD || secrets.VITE_MEDIA_BASE_URL_DEV }}
       FRONTEND_BUCKET: ${{ github.ref == 'refs/heads/main' && secrets.FRONTEND_BUCKET_PROD || secrets.FRONTEND_BUCKET_DEV }}

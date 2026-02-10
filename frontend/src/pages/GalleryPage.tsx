@@ -12,6 +12,7 @@ interface MediaItem {
   uploadTimestamp: string
   mediaType: string
   s3Key: string
+  thumbnailKey?: string
   caption?: string
   year?: number
 }
@@ -125,8 +126,8 @@ const GalleryPage = () => {
   }, [loadMedia])
 
   // Generate image URL from S3 key
-  const getImageUrl = (s3Key: string) => {
-    return getMediaUrl(s3Key)
+  const getImageUrl = (key: string) => {
+    return getMediaUrl(key)
   }
 
   const getMediaIcon = (mediaType: string) => {
@@ -189,7 +190,7 @@ const GalleryPage = () => {
                             ref={(el) => {
                               if (el) observeImage(item.id, el)
                             }}
-                            data-src={getImageUrl(item.s3Key)}
+                            data-src={getImageUrl(item.thumbnailKey || item.s3Key)}
                             alt={item.filename}
                             className="lazy-image"
                           />

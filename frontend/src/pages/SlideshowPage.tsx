@@ -31,6 +31,20 @@ const SlideshowPage = () => {
   const uiHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
+  // Randomize media order
+  const randomizeMedia = useCallback((items: MediaItem[]) => {
+    return [...items].sort(() => Math.random() - 0.5)
+  }, [])
+
+  // Sort media chronologically
+  const sortMediaChronologically = useCallback((items: MediaItem[]) => {
+    return [...items].sort((a, b) => {
+      const yearA = a.year || 9999
+      const yearB = b.year || 9999
+      return yearB - yearA
+    })
+  }, [])
+
   // Load media data
   useEffect(() => {
     const loadMedia = async () => {
@@ -61,20 +75,6 @@ const SlideshowPage = () => {
 
     loadMedia()
   }, [randomizeMedia, sortMediaChronologically, sortOrder])
-
-  // Randomize media order
-  const randomizeMedia = useCallback((items: MediaItem[]) => {
-    return [...items].sort(() => Math.random() - 0.5)
-  }, [])
-
-  // Sort media chronologically
-  const sortMediaChronologically = useCallback((items: MediaItem[]) => {
-    return [...items].sort((a, b) => {
-      const yearA = a.year || 9999
-      const yearB = b.year || 9999
-      return yearB - yearA
-    })
-  }, [])
 
   // Handle sort order change
   const handleSortChange = useCallback(
