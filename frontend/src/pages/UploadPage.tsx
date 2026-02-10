@@ -114,21 +114,6 @@ const UploadPage = () => {
     })
   }
 
-    // Validate file type
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError(`Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}`)
-      return
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      setError(`File too large. Maximum: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
-      return
-    }
-
-    setFormData(prev => ({ ...prev, file }))
-  }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -206,7 +191,7 @@ const UploadPage = () => {
       })
 
       xhr.open('PUT', presignedUrl, true)
-      xhr.setRequestHeader('Content-Type', formData.file!.type)
+      xhr.setRequestHeader('Content-Type', file.type)
       xhr.send(file)
     })
   }
@@ -333,7 +318,7 @@ const UploadPage = () => {
         >
           <div className="drop-zone-content">
             <div className="drop-icon">
-              {formData.file ? '✓' : '↑'}
+              {uploadItems.length > 0 ? '✓' : '↑'}
             </div>
             <div className="drop-text">
               {uploadItems.length > 0 ? (
