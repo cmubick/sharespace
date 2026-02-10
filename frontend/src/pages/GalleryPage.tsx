@@ -191,7 +191,26 @@ const GalleryPage = () => {
                               if (el) observeImage(item.id, el)
                             }}
                             data-src={getImageUrl(item.thumbnailKey || item.s3Key)}
+                            data-full-src={getImageUrl(item.s3Key)}
                             alt={item.filename}
+                            onLoad={() => {
+                              const selectedKey = item.thumbnailKey || item.s3Key
+                              const finalUrl = getImageUrl(selectedKey)
+                              console.log('Gallery image selection', {
+                                mediaId: item.id,
+                                s3Key: item.s3Key,
+                                thumbnailKey: item.thumbnailKey,
+                                finalUrl,
+                              })
+                            }}
+                            onError={(e) => {
+                              const img = e.currentTarget
+                              const fullSrc = img.getAttribute('data-full-src')
+                              if (fullSrc && img.src !== fullSrc) {
+                                img.src = fullSrc
+                                img.classList.add('loaded')
+                              }
+                            }}
                             className="lazy-image"
                           />
                         ) : (

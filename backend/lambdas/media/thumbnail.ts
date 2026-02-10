@@ -51,10 +51,6 @@ export const handler = async (event: S3Event): Promise<void> => {
       continue
     }
 
-    const filename = key.split('/').pop() || key
-    const baseName = filename.replace(/\.[^.]+$/, '')
-    const thumbnailKey = `thumbnails/${baseName}.jpg`
-
     const keyParts = key.split('/').filter(Boolean)
     const uploadsIndex = keyParts.indexOf('uploads')
     const mediaId = uploadsIndex >= 0 ? keyParts[uploadsIndex + 1] : undefined
@@ -64,8 +60,10 @@ export const handler = async (event: S3Event): Promise<void> => {
       continue
     }
 
+    const thumbnailKey = `thumbnails/${mediaId}.jpg`
+
     console.log('Generating thumbnail:', {
-      source: key,
+      sourceKey: key,
       thumbnailKey,
     })
 
@@ -101,7 +99,7 @@ export const handler = async (event: S3Event): Promise<void> => {
       })
     )
 
-    await dynamoDb.send(
+    const updateResult = await dynamoDb.send(
       new UpdateCommand({
         TableName: MEDIA_TABLE,
         Key: {
@@ -112,9 +110,13 @@ export const handler = async (event: S3Event): Promise<void> => {
         ExpressionAttributeValues: {
           ':thumbnailKey': thumbnailKey,
         },
+        ReturnValues: 'UPDATED_NEW',
       })
     )
 
-    console.log(`Thumbnail saved: ${thumbnailKey}`)
+    console.log('Thumbnail saved:', {
+      thumbnailKey,
+      updateResult,
+    })
   }
 }
