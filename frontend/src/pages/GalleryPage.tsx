@@ -31,6 +31,8 @@ const GalleryPage = () => {
   const location = useLocation()
   const PAGE_SIZE = 30
   const STORAGE_KEY = 'sharespace_gallery_state'
+  const REFRESH_KEY = 'sharespace_gallery_refresh'
+  const REFRESH_SEEN_KEY = 'sharespace_gallery_refresh_seen'
   const hasRestoredRef = useRef(false)
   const [groupedMedia, setGroupedMedia] = useState<GroupedMedia>({})
   const [items, setItems] = useState<MediaItem[]>([])
@@ -46,6 +48,7 @@ const GalleryPage = () => {
   const isFetchingRef = useRef(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const loadMoreObserverRef = useRef<IntersectionObserver | null>(null)
+  const pendingScrollRef = useRef<number | null>(null)
 
   // Lazy loading refs
   const imageRefs = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -104,6 +107,25 @@ const GalleryPage = () => {
     setItems((prev) => (reset ? mappedItems : [...prev, ...mappedItems]))
     setLastKey(nextKey)
     setHasMore(Boolean(nextKey))
+  }
+
+  const markRefreshSeen = () => {
+    const stamp = sessionStorage.getItem(REFRESH_KEY)
+    if (stamp) {
+      sessionStorage.setItem(REFRESH_SEEN_KEY, stamp)
+    }
+  }
+
+  const resetPagination = (preserveScroll = false) => {
+    if (preserveScroll && typeof window !== 'undefined') {
+      pendingScrollRef.current = window.scrollY
+    }
+    setItems([])
+    setGroupedMedia({})
+    setLastKey(null)
+    setHasMore(true)
+    loadMedia({ reset: true })
+    markRefreshSeen()
   }
 
   // Fetch media list from API
@@ -216,6 +238,14 @@ const GalleryPage = () => {
       return
     }
 
+    const refreshStamp = Number(sessionStorage.getItem(REFRESH_KEY) || 0)
+    const seenStamp = Number(sessionStorage.getItem(REFRESH_SEEN_KEY) || 0)
+    if (refreshStamp > seenStamp) {
+      sessionStorage.removeItem(STORAGE_KEY)
+      resetPagination()
+      return
+    }
+
     const cached = sessionStorage.getItem(STORAGE_KEY)
     if (cached && !uploadedMediaId) {
       try {
@@ -238,6 +268,31 @@ const GalleryPage = () => {
 
     loadMedia({ reset: true })
   }, [loadMedia, uploadedMediaId, useMocks])
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== REFRESH_KEY) return
+      const refreshStamp = Number(event.newValue || 0)
+      const seenStamp = Number(sessionStorage.getItem(REFRESH_SEEN_KEY) || 0)
+      if (refreshStamp > seenStamp) {
+        sessionStorage.removeItem(STORAGE_KEY)
+        resetPagination(true)
+      }
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [loadMedia])
+
+  useEffect(() => {
+    if (loading) return
+    if (pendingScrollRef.current === null) return
+    const y = pendingScrollRef.current
+    pendingScrollRef.current = null
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y })
+    })
+  }, [loading])
 
   useEffect(() => {
     groupMediaByYear(items)

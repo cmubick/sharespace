@@ -269,6 +269,7 @@ const UploadPage = () => {
     setUploading(false)
 
     if (completedCount > 0 && errorCount === 0) {
+      sessionStorage.setItem('sharespace_gallery_refresh', Date.now().toString())
       setLastUploadCount(completedCount)
       setSuccessMessage(`Uploaded ${completedCount} file${completedCount === 1 ? '' : 's'} successfully.`)
       setUploadItems([])
@@ -284,6 +285,7 @@ const UploadPage = () => {
         setSuccessMessage('')
       }, 3000)
     } else if (completedCount > 0 && errorCount > 0) {
+      sessionStorage.setItem('sharespace_gallery_refresh', Date.now().toString())
       setSuccessMessage(`Uploaded ${completedCount} file${completedCount === 1 ? '' : 's'} with ${errorCount} error${errorCount === 1 ? '' : 's'}.`)
     } else if (errorCount > 0) {
       setError('Some uploads failed. Please review and try again.')
