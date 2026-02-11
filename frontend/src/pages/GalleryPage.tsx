@@ -30,10 +30,6 @@ interface LocationState {
 const GalleryPage = () => {
   const location = useLocation()
   const PAGE_SIZE = 30
-  const STORAGE_KEY = 'sharespace_gallery_state'
-  const REFRESH_KEY = 'sharespace_gallery_refresh'
-  const REFRESH_SEEN_KEY = 'sharespace_gallery_refresh_seen'
-  const hasRestoredRef = useRef(false)
   const [groupedMedia, setGroupedMedia] = useState<GroupedMedia>({})
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +42,6 @@ const GalleryPage = () => {
   const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   const isFetchingRef = useRef(false)
-  const pendingScrollRef = useRef<number | null>(null)
   const viewportFilledRef = useRef(false)
 
   // Lazy loading refs
@@ -108,26 +103,6 @@ const GalleryPage = () => {
     setHasMore(Boolean(nextKey))
   }
 
-  const markRefreshSeen = () => {
-    const stamp = sessionStorage.getItem(REFRESH_KEY)
-    if (stamp) {
-      sessionStorage.setItem(REFRESH_SEEN_KEY, stamp)
-    }
-  }
-
-  const resetPagination = (preserveScroll = false) => {
-    if (preserveScroll && typeof window !== 'undefined') {
-      pendingScrollRef.current = window.scrollY
-    }
-    viewportFilledRef.current = false
-    setItems([])
-    setGroupedMedia({})
-    setLastKey(null)
-    setHasMore(true)
-    loadMedia({ reset: true })
-    markRefreshSeen()
-  }
-
   // Fetch media list from API
   const loadMedia = useCallback(async ({ reset, currentLastKey }: { reset?: boolean; currentLastKey?: Record<string, unknown> | null } = {}) => {
     if (isFetchingRef.current) return
@@ -145,6 +120,7 @@ const GalleryPage = () => {
       const params = new URLSearchParams()
       params.set('userId', getUserId())
       params.set('limit', PAGE_SIZE.toString())
+      params.set('t', Date.now().toString())
       const keyToUse = reset ? null : currentLastKey ?? lastKey
       if (!reset && keyToUse) {
         params.set('lastKey', encodeLastKey(keyToUse))
@@ -252,82 +228,20 @@ const GalleryPage = () => {
     setSelectedMedia(null)
   }
 
-  // Load media on mount
+  // Load media on mount (always fetch fresh)
   useEffect(() => {
-    if (hasRestoredRef.current) return
-    hasRestoredRef.current = true
-
-    if (useMocks) {
-      loadMedia({ reset: true })
-      return
-    }
-
-    const refreshStamp = Number(sessionStorage.getItem(REFRESH_KEY) || 0)
-    const seenStamp = Number(sessionStorage.getItem(REFRESH_SEEN_KEY) || 0)
-    if (refreshStamp > seenStamp) {
-      sessionStorage.removeItem(STORAGE_KEY)
-      resetPagination()
-      return
-    }
-
-    const cached = sessionStorage.getItem(STORAGE_KEY)
-    if (cached && !uploadedMediaId) {
-      try {
-        const parsed = JSON.parse(cached) as {
-          items: MediaItem[]
-          lastKey: Record<string, unknown> | null
-          hasMore: boolean
-        }
-        if (Array.isArray(parsed.items)) {
-          setItems(parsed.items)
-          setLastKey(parsed.lastKey || null)
-          setHasMore(parsed.hasMore ?? Boolean(parsed.lastKey))
-          setLoading(false)
-          return
-        }
-      } catch (err) {
-        console.warn('Failed to restore gallery cache:', err)
-      }
-    }
-
+    console.log('Gallery initial media fetch')
+    viewportFilledRef.current = false
+    setItems([])
+    setGroupedMedia({})
+    setLastKey(null)
+    setHasMore(true)
     loadMedia({ reset: true })
-  }, [loadMedia, uploadedMediaId, useMocks])
-
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== REFRESH_KEY) return
-      const refreshStamp = Number(event.newValue || 0)
-      const seenStamp = Number(sessionStorage.getItem(REFRESH_SEEN_KEY) || 0)
-      if (refreshStamp > seenStamp) {
-        sessionStorage.removeItem(STORAGE_KEY)
-        resetPagination(true)
-      }
-    }
-
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [loadMedia])
-
-  useEffect(() => {
-    if (loading) return
-    if (pendingScrollRef.current === null) return
-    const y = pendingScrollRef.current
-    pendingScrollRef.current = null
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: y })
-    })
-  }, [loading])
+  }, [])
 
   useEffect(() => {
     groupMediaByYear(items)
   }, [items])
-
-  useEffect(() => {
-    sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ items, lastKey, hasMore })
-    )
-  }, [items, lastKey, hasMore])
 
   // Scroll-based pagination (user-triggered)
   useEffect(() => {

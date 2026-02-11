@@ -4,6 +4,7 @@
 
 const corsHeaders = {
   'Content-Type': 'application/json',
+  'Cache-Control': 'no-store',
   'Access-Control-Allow-Origin': 'https://itsonlycastlesburning.com',
   'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,PUT,DELETE',
