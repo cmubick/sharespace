@@ -129,7 +129,7 @@ const GalleryPage = () => {
   }
 
   // Fetch media list from API
-  const loadMedia = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
+  const loadMedia = useCallback(async ({ reset, currentLastKey }: { reset?: boolean; currentLastKey?: Record<string, unknown> | null } = {}) => {
     if (isFetchingRef.current) return
     if (!reset && !hasMore) return
 
@@ -145,8 +145,9 @@ const GalleryPage = () => {
       const params = new URLSearchParams()
       params.set('userId', getUserId())
       params.set('limit', PAGE_SIZE.toString())
-      if (!reset && lastKey) {
-        params.set('lastKey', encodeLastKey(lastKey))
+      const keyToUse = reset ? null : currentLastKey ?? lastKey
+      if (!reset && keyToUse) {
+        params.set('lastKey', encodeLastKey(keyToUse))
       }
 
       if (useMocks) {
@@ -177,7 +178,7 @@ const GalleryPage = () => {
       }
       isFetchingRef.current = false
     }
-  }, [PAGE_SIZE, hasMore, lastKey])
+  }, [PAGE_SIZE, hasMore])
 
   // Group media by year
   const groupMediaByYear = (items: MediaItem[]) => {
@@ -319,7 +320,7 @@ const GalleryPage = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            loadMedia()
+            loadMedia({ currentLastKey: lastKey })
           }
         })
       },
@@ -332,7 +333,7 @@ const GalleryPage = () => {
     }
 
     return () => loadMoreObserverRef.current?.disconnect()
-  }, [hasMore, items.length, loadMedia])
+  }, [hasMore, lastKey, loadMedia])
 
   useEffect(() => {
     const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
