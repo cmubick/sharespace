@@ -46,10 +46,7 @@ const GalleryPage = () => {
   const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   const isFetchingRef = useRef(false)
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
-  const loadMoreObserverRef = useRef<IntersectionObserver | null>(null)
   const pendingScrollRef = useRef<number | null>(null)
-  const observerAttachedRef = useRef(false)
 
   // Lazy loading refs
   const imageRefs = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -307,92 +304,24 @@ const GalleryPage = () => {
     )
   }, [items, lastKey, hasMore])
 
+  // Scroll-based pagination
   useEffect(() => {
     const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
-    if (!win || !('IntersectionObserver' in win)) {
-      console.log('[Gallery] IntersectionObserver not available, using scroll fallback')
-      return
-    }
-
-    // Disconnect previous observer if exists
-    if (loadMoreObserverRef.current) {
-      console.log('[Gallery] Disconnecting previous observer')
-      loadMoreObserverRef.current.disconnect()
-      observerAttachedRef.current = false
-    }
-
-    const target = loadMoreRef.current
-    if (!target) {
-      console.log('[Gallery] Sentinel element not found, skipping observer')
-      return
-    }
-
-    // Check if we should observe (has more items and not loading)
-    if (!hasMore) {
-      console.log('[Gallery] No more items, skipping observer')
-      return
-    }
-
-    // Create observer with viewport as root
-    loadMoreObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            console.log('[Gallery] Sentinel visible, triggering pagination', {
-              isLoading: isFetchingRef.current,
-              hasMore,
-              lastKey: lastKey ? 'present' : 'null',
-            })
-
-            if (!isFetchingRef.current && hasMore && lastKey) {
-              console.log('[Gallery] Loading next page...')
-              loadMedia({ currentLastKey: lastKey })
-            } else if (!lastKey && hasMore) {
-              console.log('[Gallery] WARNING: hasMore=true but lastKey=null')
-            }
-          }
-        })
-      },
-      {
-        root: null, // Use viewport as root
-        rootMargin: '200px',
-        threshold: 0.1,
-      }
-    )
-
-    console.log('[Gallery] Observing sentinel element', { hasMore, lastKeyExists: Boolean(lastKey) })
-    loadMoreObserverRef.current.observe(target)
-    observerAttachedRef.current = true
-
-    return () => {
-      if (loadMoreObserverRef.current) {
-        console.log('[Gallery] Cleanup: disconnecting observer')
-        loadMoreObserverRef.current.disconnect()
-        observerAttachedRef.current = false
-      }
-    }
-  }, [hasMore, lastKey, loadMedia])
-
-  useEffect(() => {
-    const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
-    if (!win || 'IntersectionObserver' in win) {
-      return
-    }
-
-    console.log('[Gallery] Using scroll fallback (no IntersectionObserver support)')
+    if (!win) return
 
     const handleScroll = () => {
       if (!hasMore || isFetchingRef.current) return
 
       const scrollPosition = win.scrollY + win.innerHeight
-      const threshold = document.body.offsetHeight - 300
+      const threshold = document.body.offsetHeight - 400
       const isNearBottom = scrollPosition >= threshold
 
-      if (isNearBottom) {
-        console.log('[Gallery] Scroll fallback triggered pagination', {
+      if (isNearBottom && lastKey) {
+        console.log('[Gallery] Pagination triggered', {
           scrollPosition,
           threshold,
           hasMore,
+          loadingMore: isFetchingRef.current,
         })
         loadMedia({ currentLastKey: lastKey })
       }
@@ -524,7 +453,6 @@ const GalleryPage = () => {
                 </div>
               </section>
             ))}
-            <div ref={loadMoreRef} className="load-more-sentinel" aria-hidden="true" />
             {loadingMore && (
               <div className="loading-state">
                 <div className="spinner"></div>
