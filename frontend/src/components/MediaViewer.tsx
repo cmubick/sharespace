@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { getApiUrl, getMediaUrl } from '../services/api'
 import '../styles/MediaViewer.css'
 
@@ -16,12 +16,14 @@ interface MediaItem {
 
 interface MediaViewerProps {
   media: MediaItem
+  allMedia?: MediaItem[]
   onClose: () => void
+  onNavigate?: (media: MediaItem) => void
   onUpdate: (updated: MediaItem) => void
   onDelete: (mediaId: string) => void
 }
 
-const MediaViewer = ({ media, onClose, onUpdate, onDelete }: MediaViewerProps) => {
+const MediaViewer = ({ media, allMedia = [], onClose, onNavigate, onUpdate, onDelete }: MediaViewerProps) => {
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -30,6 +32,24 @@ const MediaViewer = ({ media, onClose, onUpdate, onDelete }: MediaViewerProps) =
     year: media.year ? String(media.year) : '',
     album: media.album || '',
   })
+  const [touchStart, setTouchStart] = useState(0)
+  const touchRef = useRef<HTMLDivElement>(null)
+
+  // Calculate current index
+  const currentIndex = allMedia.findIndex((m) => m.id === media.id)
+
+  // Navigation with wrap-around
+  const navigatePrevious = () => {
+    if (!onNavigate || allMedia.length === 0) return
+    const prevIndex = currentIndex === 0 ? allMedia.length - 1 : currentIndex - 1
+    onNavigate(allMedia[prevIndex])
+  }
+
+  const navigateNext = () => {
+    if (!onNavigate || allMedia.length === 0) return
+    const nextIndex = currentIndex === allMedia.length - 1 ? 0 : currentIndex + 1
+    onNavigate(allMedia[nextIndex])
+  }
 
   useEffect(() => {
     setForm({
@@ -38,17 +58,42 @@ const MediaViewer = ({ media, onClose, onUpdate, onDelete }: MediaViewerProps) =
       album: media.album || '',
     })
   }, [media])
-  // Close modal on Escape key
+  // Close modal on Escape key, navigate with arrow keys
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
+      } else if (e.key === 'ArrowLeft' && allMedia.length > 1) {
+        e.preventDefault()
+        navigatePrevious()
+      } else if (e.key === 'ArrowRight' && allMedia.length > 1) {
+        e.preventDefault()
+        navigateNext()
       }
     }
 
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [onClose])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, onNavigate, currentIndex, allMedia])
+
+  // Swipe gesture support for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEnd = e.changedTouches[0].clientX
+    const diff = touchStart - touchEnd
+
+    // Swipe left (show next) - threshold 50px
+    if (diff > 50 && allMedia.length > 1) {
+      navigateNext()
+    }
+    // Swipe right (show previous) - threshold 50px
+    else if (diff < -50 && allMedia.length > 1) {
+      navigatePrevious()
+    }
+  }
 
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -149,7 +194,35 @@ const MediaViewer = ({ media, onClose, onUpdate, onDelete }: MediaViewerProps) =
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        ref={touchRef}
+      >
+        {/* Navigation Arrows */}
+        {allMedia.length > 1 && (
+          <>
+            <button
+              className="nav-arrow nav-arrow-left"
+              onClick={navigatePrevious}
+              aria-label="Previous media"
+              title="Previous (← arrow or swipe right)"
+            >
+              ❮
+            </button>
+            <button
+              className="nav-arrow nav-arrow-right"
+              onClick={navigateNext}
+              aria-label="Next media"
+              title="Next (→ arrow or swipe left)"
+            >
+              ❯
+            </button>
+          </>
+        )}
+
         {/* Close Button */}
         <button className="modal-close" onClick={onClose} aria-label="Close modal">
           ✕

@@ -490,7 +490,9 @@ const GalleryPage = () => {
       {selectedMedia && (
         <MediaViewer
           media={selectedMedia}
+          allMedia={items}
           onClose={() => setSelectedMedia(null)}
+          onNavigate={setSelectedMedia}
           onUpdate={updateMediaItem}
           onDelete={removeMediaItem}
         />
