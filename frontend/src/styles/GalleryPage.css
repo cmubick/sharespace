@@ -342,6 +342,19 @@
   }
 }
 
+/* Pagination Sentinel */
+.load-more-sentinel {
+  height: 1px;
+  margin-top: 2rem;
+  pointer-events: none;
+  visibility: hidden;
+  /* Debugging: uncomment to visualize sentinel
+  background: rgba(255, 0, 0, 0.3);
+  visibility: visible;
+  height: 20px;
+  */
+}
+
 @media (max-width: 480px) {
   .media-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
