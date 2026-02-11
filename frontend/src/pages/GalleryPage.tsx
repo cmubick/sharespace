@@ -47,6 +47,7 @@ const GalleryPage = () => {
 
   const isFetchingRef = useRef(false)
   const pendingScrollRef = useRef<number | null>(null)
+  const viewportFilledRef = useRef(false)
 
   // Lazy loading refs
   const imageRefs = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -118,6 +119,7 @@ const GalleryPage = () => {
     if (preserveScroll && typeof window !== 'undefined') {
       pendingScrollRef.current = window.scrollY
     }
+    viewportFilledRef.current = false
     setItems([])
     setGroupedMedia({})
     setLastKey(null)
@@ -150,6 +152,17 @@ const GalleryPage = () => {
 
       if (useMocks) {
         loadMockPage(reset)
+        // Check scrollability after mock load
+        requestAnimationFrame(() => {
+          const isScrollable = document.body.scrollHeight > window.innerHeight
+          if (!isScrollable && lastKey && !viewportFilledRef.current) {
+            console.log('[Gallery] Auto-filling viewport (not scrollable yet)')
+            loadMedia({ currentLastKey: lastKey })
+          } else if (isScrollable) {
+            viewportFilledRef.current = true
+            console.log('[Gallery] Viewport filled, auto-fill complete')
+          }
+        })
         return
       }
 
@@ -165,6 +178,18 @@ const GalleryPage = () => {
       setItems((prev) => (reset ? items : [...prev, ...items]))
       setLastKey(nextLastKey)
       setHasMore(Boolean(nextLastKey))
+
+      // Check scrollability after API load
+      requestAnimationFrame(() => {
+        const isScrollable = document.body.scrollHeight > window.innerHeight
+        if (!isScrollable && nextLastKey && !viewportFilledRef.current) {
+          console.log('[Gallery] Auto-filling viewport (not scrollable yet)')
+          loadMedia({ currentLastKey: nextLastKey })
+        } else if (isScrollable) {
+          viewportFilledRef.current = true
+          console.log('[Gallery] Viewport filled, auto-fill complete')
+        }
+      })
     } catch (err) {
       console.error('Failed to load media:', err)
       loadMockPage(reset)
@@ -176,7 +201,7 @@ const GalleryPage = () => {
       }
       isFetchingRef.current = false
     }
-  }, [PAGE_SIZE, hasMore])
+  }, [PAGE_SIZE, hasMore, lastKey])
 
   // Group media by year
   const groupMediaByYear = (items: MediaItem[]) => {
@@ -304,36 +329,34 @@ const GalleryPage = () => {
     )
   }, [items, lastKey, hasMore])
 
-  // Scroll-based pagination
+  // Scroll-based pagination (user-triggered)
   useEffect(() => {
     const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
     if (!win) return
 
     const handleScroll = () => {
-      if (!hasMore || isFetchingRef.current) return
+      // Only paginate on user scroll if viewport is already filled
+      if (!viewportFilledRef.current || !hasMore || isFetchingRef.current) return
 
       const scrollPosition = win.scrollY + win.innerHeight
       const threshold = document.body.offsetHeight - 400
       const isNearBottom = scrollPosition >= threshold
 
       if (isNearBottom && lastKey) {
-        console.log('[Gallery] Pagination triggered', {
+        console.log('[Gallery] Scroll pagination triggered', {
           scrollPosition,
           threshold,
           hasMore,
-          loadingMore: isFetchingRef.current,
+          viewportFilled: viewportFilledRef.current,
         })
         loadMedia({ currentLastKey: lastKey })
       }
     }
 
     win.addEventListener('scroll', handleScroll, { passive: true })
-    win.addEventListener('resize', handleScroll)
-    handleScroll() // Check initial state
 
     return () => {
       win.removeEventListener('scroll', handleScroll)
-      win.removeEventListener('resize', handleScroll)
     }
   }, [hasMore, lastKey, loadMedia])
 
