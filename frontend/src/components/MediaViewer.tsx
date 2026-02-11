@@ -26,6 +26,7 @@ interface MediaViewerProps {
 const MediaViewer = ({ media, allMedia = [], onClose, onNavigate, onUpdate, onDelete }: MediaViewerProps) => {
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     caption: media.caption || '',
@@ -104,6 +105,42 @@ const MediaViewer = ({ media, allMedia = [], onClose, onNavigate, onUpdate, onDe
   }, [])
 
   const resolveMediaUrl = (s3Key: string) => getMediaUrl(s3Key)
+
+  const sanitizeFilenamePart = (value: string) => {
+    return value
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-_]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  const getFileExtension = (filename: string, s3Key: string) => {
+    const fromFilename = filename.split('.').pop()
+    if (fromFilename && fromFilename !== filename) return fromFilename.toLowerCase()
+    const fromKey = s3Key.split('.').pop()
+    if (fromKey && fromKey !== s3Key) return fromKey.toLowerCase()
+    return 'bin'
+  }
+
+  const buildDownloadFilename = () => {
+    const ext = getFileExtension(media.filename, media.s3Key)
+    const year = media.year ? String(media.year) : ''
+    const caption = media.caption ? sanitizeFilenamePart(media.caption) : ''
+    const uploader = media.uploader ? sanitizeFilenamePart(media.uploader) : ''
+
+    const parts = [year, caption, uploader].filter(Boolean)
+    let baseName = parts.join('-')
+    if (!baseName) {
+      baseName = `media-${sanitizeFilenamePart(media.uploadTimestamp || String(Date.now()))}`
+    }
+
+    if (baseName.length > 80) {
+      baseName = baseName.slice(0, 80).replace(/-+$/g, '')
+    }
+
+    return `${baseName}.${ext}`
+  }
 
   const getMediaIcon = (mediaType: string) => {
     if (mediaType === 'image' || mediaType.startsWith('image/')) return '🖼️'
@@ -189,6 +226,34 @@ const MediaViewer = ({ media, allMedia = [], onClose, onNavigate, onUpdate, onDe
       setError(err instanceof Error ? err.message : 'Failed to delete media')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDownload = async () => {
+    if (downloading) return
+    try {
+      setDownloading(true)
+      setError('')
+
+      const url = resolveMediaUrl(media.s3Key)
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error('Failed to download media')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = buildDownloadFilename()
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download media')
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -358,6 +423,9 @@ const MediaViewer = ({ media, allMedia = [], onClose, onNavigate, onUpdate, onDe
               </>
             ) : (
               <>
+                <button className="btn-download" onClick={handleDownload} disabled={downloading}>
+                  {downloading ? 'Downloading…' : 'Download'}
+                </button>
                 <button className="btn-download" onClick={() => setIsEditing(true)}>
                   Edit
                 </button>
