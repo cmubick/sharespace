@@ -29,20 +29,17 @@ interface LocationState {
 
 const GalleryPage = () => {
   const location = useLocation()
-  const PAGE_SIZE = 30
+  const MEDIA_LIMIT = 1000 // Load all media at once for memorial use
   const [groupedMedia, setGroupedMedia] = useState<GroupedMedia>({})
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
-  const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
-  const [hasMore, setHasMore] = useState(true)
+  
   const uploadedMediaId = (location.state as LocationState)?.uploadedMediaId
   const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   const isFetchingRef = useRef(false)
-  const viewportFilledRef = useRef(false)
   const hasInitializedRef = useRef(false)
 
   // Lazy loading refs
@@ -78,14 +75,9 @@ const GalleryPage = () => {
     }
   }, [])
 
-  const encodeLastKey = (key: Record<string, unknown>) => {
-    return btoa(JSON.stringify(key))
-  }
-
-  const loadMockPage = (reset?: boolean) => {
-    const offset = reset ? 0 : Number(lastKey?.offset ?? 0)
-    const nextSlice = mockMedia.slice(offset, offset + PAGE_SIZE)
-    const mappedItems = nextSlice.map((item) => ({
+  const loadMockPage = () => {
+    // Load all mock data at once (up to limit)
+    const allMockItems = mockMedia.slice(0, MEDIA_LIMIT).map((item) => ({
       id: item.mediaId,
       filename: `Mock ${item.mediaId}`,
       uploader: item.uploaderName,
@@ -96,130 +88,55 @@ const GalleryPage = () => {
       caption: item.caption,
       year: item.year,
     }))
-    const nextOffset = offset + nextSlice.length
-    const nextKey = nextOffset < mockMedia.length ? { offset: nextOffset } : null
-
-    // Deduplicate items when appending
-    setItems((prev) => {
-      if (reset) return mappedItems
-      const existingIds = new Set(prev.map(m => m.id))
-      const newItems = mappedItems.filter(i => !existingIds.has(i.id))
-      console.log('[Gallery] Mock fetch complete', { 
-        fetchedCount: mappedItems.length, 
-        newCount: newItems.length,
-        duplicatesSkipped: mappedItems.length - newItems.length
-      })
-      return [...prev, ...newItems]
-    })
-    setLastKey(nextKey)
-    setHasMore(Boolean(nextKey))
+    
+    console.log('[Gallery] Mock fetch complete', { count: allMockItems.length })
+    setItems(allMockItems)
   }
 
-  // Fetch media list from API
-  const loadMedia = useCallback(async ({ reset, currentLastKey }: { reset?: boolean; currentLastKey?: Record<string, unknown> | null } = {}) => {
+  // Fetch all media in a single request (simplified for memorial use)
+  // Note: Pagination infrastructure preserved but disabled - can be re-enabled if needed
+  const loadMedia = useCallback(async () => {
     // Request lock to prevent duplicate fetches
     if (isFetchingRef.current) {
-      console.log('[Gallery] Media fetch skipped (locked)')
-      return
-    }
-    if (!reset && !hasMore) {
-      console.log('[Gallery] Media fetch skipped (no more items)')
-      return
-    }
-    if (!reset && !currentLastKey && !lastKey) {
-      console.log('[Gallery] Media fetch skipped (no pagination key)')
+      console.log('[Gallery] Media fetch skipped (already loading)')
       return
     }
 
-    console.log('[Gallery] Media fetch start', { reset, hasLastKey: Boolean(currentLastKey || lastKey) })
+    console.log('[Gallery] Loading all media (single request)')
     isFetchingRef.current = true
+    setLoading(true)
+    setError('')
+
     try {
-      if (reset) {
-        setLoading(true)
-      } else {
-        setLoadingMore(true)
+      if (useMocks) {
+        loadMockPage()
+        return
       }
-      setError('')
 
       const params = new URLSearchParams()
       params.set('userId', getUserId())
-      params.set('limit', PAGE_SIZE.toString())
+      params.set('limit', MEDIA_LIMIT.toString())
       params.set('t', Date.now().toString())
-      const keyToUse = reset ? null : currentLastKey ?? lastKey
-      if (!reset && keyToUse) {
-        params.set('lastKey', encodeLastKey(keyToUse))
-      }
-
-      if (useMocks) {
-        loadMockPage(reset)
-        if (reset) {
-          setLoading(false)
-        } else {
-          setLoadingMore(false)
-        }
-        isFetchingRef.current = false
-        
-        // Check scrollability after mock load
-        requestAnimationFrame(() => {
-          const isScrollable = document.body.scrollHeight > window.innerHeight
-          if (!isScrollable && lastKey && !viewportFilledRef.current && !isFetchingRef.current) {
-            console.log('[Gallery] Auto-filling viewport (not scrollable yet)')
-            loadMedia({ currentLastKey: lastKey })
-          } else if (isScrollable) {
-            viewportFilledRef.current = true
-            console.log('[Gallery] Viewport filled, auto-fill complete')
-          }
-        })
-        return
-      }
 
       const response = await fetch(`${getApiUrl('/media')}?${params.toString()}`)
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}))
         throw new Error(errorBody.error || 'Failed to fetch media')
       }
+      
       const data = await response.json()
       const items = (data.items || []) as MediaItem[]
-      const nextLastKey = data.lastKey && Object.keys(data.lastKey).length > 0 ? data.lastKey : null
-
-      // Deduplicate items when appending
-      setItems((prev) => {
-        if (reset) return items
-        const existingIds = new Set(prev.map(m => m.id))
-        const newItems = items.filter(i => !existingIds.has(i.id))
-        console.log('[Gallery] Media fetch complete', { 
-          fetchedCount: items.length, 
-          newCount: newItems.length,
-          duplicatesSkipped: items.length - newItems.length
-        })
-        return [...prev, ...newItems]
-      })
-      setLastKey(nextLastKey)
-      setHasMore(Boolean(nextLastKey))
-
-      // Check scrollability after API load
-      requestAnimationFrame(() => {
-        const isScrollable = document.body.scrollHeight > window.innerHeight
-        if (!isScrollable && nextLastKey && !viewportFilledRef.current && !isFetchingRef.current) {
-          console.log('[Gallery] Auto-filling viewport (not scrollable yet)')
-          loadMedia({ currentLastKey: nextLastKey })
-        } else if (isScrollable) {
-          viewportFilledRef.current = true
-          console.log('[Gallery] Viewport filled, auto-fill complete')
-        }
-      })
+      
+      console.log('[Gallery] Media fetch complete', { count: items.length })
+      setItems(items)
     } catch (err) {
       console.error('Failed to load media:', err)
-      loadMockPage(reset)
+      loadMockPage()
     } finally {
-      if (reset) {
-        setLoading(false)
-      } else {
-        setLoadingMore(false)
-      }
+      setLoading(false)
       isFetchingRef.current = false
     }
-  }, [PAGE_SIZE, hasMore, lastKey])
+  }, [MEDIA_LIMIT, useMocks])
 
   // Group media by year
   const groupMediaByYear = (items: MediaItem[]) => {
@@ -270,7 +187,7 @@ const GalleryPage = () => {
     setSelectedMedia(null)
   }
 
-  // Load media on mount (always fetch fresh, only once)
+  // Load all media once on mount
   useEffect(() => {
     if (hasInitializedRef.current) {
       console.log('[Gallery] Mount effect skipped (already initialized)')
@@ -279,48 +196,27 @@ const GalleryPage = () => {
     hasInitializedRef.current = true
     
     console.log('[Gallery] Initial media fetch')
-    viewportFilledRef.current = false
-    setItems([])
-    setGroupedMedia({})
-    setLastKey(null)
-    setHasMore(true)
-    loadMedia({ reset: true })
-  }, [])
+    loadMedia()
+  }, [loadMedia])
 
   useEffect(() => {
     groupMediaByYear(items)
   }, [items])
 
-  // Scroll-based pagination (user-triggered)
-  useEffect(() => {
-    const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
-    if (!win) return
-
-    const handleScroll = () => {
-      // Only paginate on user scroll if viewport is already filled
-      if (!viewportFilledRef.current || !hasMore || isFetchingRef.current) return
-
-      const scrollPosition = win.scrollY + win.innerHeight
-      const threshold = document.body.offsetHeight - 400
-      const isNearBottom = scrollPosition >= threshold
-
-      if (isNearBottom && lastKey) {
-        console.log('[Gallery] Scroll pagination triggered', {
-          scrollPosition,
-          threshold,
-          hasMore,
-          viewportFilled: viewportFilledRef.current,
-        })
-        loadMedia({ currentLastKey: lastKey })
-      }
-    }
-
-    win.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      win.removeEventListener('scroll', handleScroll)
-    }
-  }, [hasMore, lastKey, loadMedia])
+  // Scroll-based pagination DISABLED (all media loads at once)
+  // Infrastructure preserved for potential future re-enablement
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (!hasMore || isFetchingRef.current) return
+  //     const scrollPosition = window.scrollY + window.innerHeight
+  //     const threshold = document.body.offsetHeight - 400
+  //     if (scrollPosition >= threshold && lastKey) {
+  //       loadMedia({ currentLastKey: lastKey })
+  //     }
+  //   }
+  //   window.addEventListener('scroll', handleScroll, { passive: true })
+  //   return () => window.removeEventListener('scroll', handleScroll)
+  // }, [hasMore, lastKey, loadMedia])
 
   // Generate image URL from S3 key
   const getImageUrl = (key: string) => {
@@ -438,12 +334,6 @@ const GalleryPage = () => {
                 </div>
               </section>
             ))}
-            {loadingMore && (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Loading more...</p>
-              </div>
-            )}
           </div>
         )}
       </div>
