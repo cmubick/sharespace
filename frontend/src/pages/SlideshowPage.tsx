@@ -19,7 +19,7 @@ type SortOrder = 'chronological' | 'random'
 
 const SlideshowPage = () => {
   const navigate = useNavigate()
-  const PAGE_SIZE = 30
+  const PAGE_SIZE = 1000
   const [media, setMedia] = useState<MediaItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)

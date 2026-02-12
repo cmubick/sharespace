@@ -29,7 +29,7 @@ interface LocationState {
 
 const GalleryPage = () => {
   const location = useLocation()
-  const PAGE_SIZE = 30
+  const PAGE_SIZE = 1000
   const [groupedMedia, setGroupedMedia] = useState<GroupedMedia>({})
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)

@@ -39,9 +39,9 @@ export const handler = async (
     const limit = parseInt(event.queryStringParameters?.limit || '30')
 
     // Validate pagination params
-    if (limit < 1 || limit > 100) {
+    if (limit < 1 || limit > 1000) {
       return createErrorResponse(
-        new Error('Invalid pagination parameters: 1 <= limit <= 100'),
+        new Error('Invalid pagination parameters: 1 <= limit <= 1000'),
         400
       )
     }
