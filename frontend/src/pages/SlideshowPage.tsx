@@ -19,7 +19,7 @@ type SortOrder = 'chronological' | 'random'
 
 const SlideshowPage = () => {
   const navigate = useNavigate()
-  const MEDIA_LIMIT = 1000 // Load all media at once for memorial use
+  const PAGE_SIZE = 30
   const [media, setMedia] = useState<MediaItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [displayIndex, setDisplayIndex] = useState(0)
@@ -30,7 +30,10 @@ const SlideshowPage = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
   const [uiVisible, setUiVisible] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
+  const [hasMore, setHasMore] = useState(true)
   const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
   // Timers
@@ -68,9 +71,21 @@ const SlideshowPage = () => {
     })
   }, [])
 
-  const loadMockPage = useCallback(() => {
-    // Load all mock data at once (up to limit)
-    const allMockItems = mockMedia.slice(0, MEDIA_LIMIT).map((item) => ({
+  const encodeLastKey = (key: Record<string, unknown>) => btoa(JSON.stringify(key))
+
+  const insertRandomly = useCallback((existing: MediaItem[], incoming: MediaItem[]) => {
+    const next = [...existing]
+    incoming.forEach((item) => {
+      const index = Math.floor(Math.random() * (next.length + 1))
+      next.splice(index, 0, item)
+    })
+    return next
+  }, [])
+
+  const loadMockPage = useCallback((reset?: boolean) => {
+    const offset = reset ? 0 : Number(lastKey?.offset ?? 0)
+    const nextSlice = mockMedia.slice(offset, offset + PAGE_SIZE)
+    const mappedItems = nextSlice.map((item) => ({
       id: item.mediaId,
       filename: `Mock ${item.mediaId}`,
       uploader: item.uploaderName,
@@ -80,35 +95,67 @@ const SlideshowPage = () => {
       caption: item.caption,
       year: item.year,
     }))
-    
-    const sorted = sortOrder === 'random'
-      ? randomizeMedia(allMockItems)
-      : sortMediaChronologically(allMockItems)
-    
-    setMedia(sorted)
-    setCurrentIndex(0)
-    setDisplayIndex(0)
-    setPendingIndex(null)
-    setNextReady(false)
-    setIsTransitioning(false)
-  }, [MEDIA_LIMIT, randomizeMedia, sortMediaChronologically, sortOrder])
+    const nextOffset = offset + nextSlice.length
+    const nextKey = nextOffset < mockMedia.length ? { offset: nextOffset } : null
 
-  // Fetch all media in a single request (simplified for memorial use)
-  const loadMediaPage = useCallback(async () => {
+    setLastKey(nextKey)
+    setHasMore(Boolean(nextKey))
+
+    if (reset) {
+      const sorted = sortOrder === 'random'
+        ? randomizeMedia(mappedItems)
+        : sortMediaChronologically(mappedItems)
+      setMedia(sorted)
+      setCurrentIndex(0)
+      setDisplayIndex(0)
+      setPendingIndex(null)
+      setNextReady(false)
+      setIsTransitioning(false)
+      return
+    }
+
+    const currentId = currentItemIdRef.current
+    setMedia((prev) => {
+      const existingIds = new Set(prev.map((item) => item.id))
+      const unique = mappedItems.filter((item) => !existingIds.has(item.id))
+      if (unique.length === 0) return prev
+      const next = sortOrder === 'random'
+        ? insertRandomly(prev, unique)
+        : [...prev, ...unique]
+      if (currentId) {
+        const newIndex = next.findIndex((item) => item.id === currentId)
+        if (newIndex >= 0) {
+          setCurrentIndex(newIndex)
+          setDisplayIndex(newIndex)
+        }
+      }
+      return next
+    })
+  }, [PAGE_SIZE, insertRandomly, lastKey?.offset, randomizeMedia, sortMediaChronologically, sortOrder])
+
+  const loadMediaPage = useCallback(async ({ reset }: { reset?: boolean } = {}) => {
     if (isFetchingRef.current) return
+    if (!reset && !hasMore) return
 
     isFetchingRef.current = true
-    setLoading(true)
-    setError('')
-
     try {
-      if (useMocks) {
-        loadMockPage()
-        return
+      if (reset) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
       }
+      setError('')
 
       const params = new URLSearchParams()
-      params.set('limit', MEDIA_LIMIT.toString())
+      params.set('limit', PAGE_SIZE.toString())
+      if (!reset && lastKey) {
+        params.set('lastKey', encodeLastKey(lastKey))
+      }
+
+      if (useMocks) {
+        loadMockPage(reset)
+        return
+      }
 
       const response = await fetch(`${getApiUrl('/media')}?${params.toString()}`)
       if (!response.ok) {
@@ -117,30 +164,58 @@ const SlideshowPage = () => {
       }
       const data = await response.json()
       const items = (data.items || []) as MediaItem[]
+      const nextLastKey = data.lastKey && Object.keys(data.lastKey).length > 0 ? data.lastKey : null
 
-      const sorted = sortOrder === 'random'
-        ? randomizeMedia(items)
-        : sortMediaChronologically(items)
-      setMedia(sorted)
-      setCurrentIndex(0)
-      setDisplayIndex(0)
-      setPendingIndex(null)
-      setNextReady(false)
-      setIsTransitioning(false)
+      setLastKey(nextLastKey)
+      setHasMore(Boolean(nextLastKey))
+
+      if (reset) {
+        const sorted = sortOrder === 'random'
+          ? randomizeMedia(items)
+          : sortMediaChronologically(items)
+        setMedia(sorted)
+        setCurrentIndex(0)
+        setDisplayIndex(0)
+        setPendingIndex(null)
+        setNextReady(false)
+        setIsTransitioning(false)
+      } else {
+        const currentId = currentItemIdRef.current
+        setMedia((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id))
+          const unique = items.filter((item) => !existingIds.has(item.id))
+          if (unique.length === 0) return prev
+          const next = sortOrder === 'random'
+            ? insertRandomly(prev, unique)
+            : [...prev, ...unique]
+          if (currentId) {
+            const newIndex = next.findIndex((item) => item.id === currentId)
+            if (newIndex >= 0) {
+              setCurrentIndex(newIndex)
+              setDisplayIndex(newIndex)
+            }
+          }
+          return next
+        })
+      }
     } catch (err) {
       console.error('Failed to load media:', err)
-      loadMockPage()
+      loadMockPage(reset)
     } finally {
-      setLoading(false)
+      if (reset) {
+        setLoading(false)
+      } else {
+        setLoadingMore(false)
+      }
       isFetchingRef.current = false
     }
-  }, [MEDIA_LIMIT, randomizeMedia, sortMediaChronologically, sortOrder, loadMockPage, useMocks])
+  }, [PAGE_SIZE, hasMore, insertRandomly, lastKey, randomizeMedia, sortMediaChronologically, sortOrder])
 
-  // Load all media once on mount
+  // Load media data
   useEffect(() => {
     if (hasLoadedRef.current) return
     hasLoadedRef.current = true
-    loadMediaPage()
+    loadMediaPage({ reset: true })
   }, [loadMediaPage])
 
   const scheduleHide = useCallback((interactionTime: number) => {
@@ -319,12 +394,12 @@ const SlideshowPage = () => {
     currentItemIdRef.current = media[displayIndex]?.id ?? null
   }, [displayIndex, media])
 
-  // Pagination prefetch DISABLED (all media loads at once)
-  // useEffect(() => {
-  //   if (media.length - displayIndex <= 3) {
-  //     loadMediaPage()
-  //   }
-  // }, [displayIndex, loadMediaPage, media.length])
+  useEffect(() => {
+    if (!hasMore) return
+    if (media.length - displayIndex <= 3) {
+      loadMediaPage()
+    }
+  }, [displayIndex, hasMore, loadMediaPage, media.length])
 
   useEffect(() => {
     if (pendingIndex === null) return
@@ -499,7 +574,7 @@ const SlideshowPage = () => {
 
           <div className="center-info">
             <div className="media-counter">
-              {currentIndex + 1} / {media.length}
+              {currentIndex + 1} / {media.length}{loadingMore ? ' • Loading more…' : ''}
             </div>
             <button
               className={`control-btn autoplay-btn ${autoplay ? 'active' : ''}`}
