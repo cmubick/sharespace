@@ -337,7 +337,7 @@ const GalleryPage = () => {
   return (
     <div className="gallery-page">
       <div className="gallery-container">
-        <h1>Gallery</h1>
+        {/* <h1>Gallery</h1> */}
 
         {/* Upload Success Message */}
         {uploadedMediaId && (

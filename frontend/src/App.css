@@ -11,7 +11,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-top: var(--header-height);
+  /* padding-top: var(--header-height); */
 }
 
 .app-header {
@@ -351,12 +351,14 @@
 
 @media (max-width: 480px) {
   .app {
-    --header-height: 104px;
+    --header-height: 72px;
   }
 
   .app-header {
     padding: 16px 20px;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     gap: 12px;
     position: sticky;
     top: 0;
@@ -365,6 +367,14 @@
 
   .brand-logo {
     height: 36px;
+  }
+
+  .brand {
+    flex: 0 0 auto;
+  }
+
+  .hamburger {
+    margin-left: auto;
   }
 
   .logout-button {
