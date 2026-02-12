@@ -4,20 +4,25 @@
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
-  overflow-x: hidden;
+  --header-height: 88px;
 }
 
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding-top: var(--header-height);
 }
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 40px;
+  width: 100%;
   background: var(--color-bg);
   border-bottom: 5px solid #1f1f1f;
   box-shadow: none;
@@ -68,7 +73,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.2);
-  z-index: 2100;
+  z-index: 1100;
 }
 
 .drawer {
@@ -80,7 +85,7 @@
   background: #fff;
   border-left: 1px solid var(--color-border);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08);
-  z-index: 2200;
+  z-index: 1200;
   transform: translateX(0);
   animation: slideIn 0.2s ease;
 }
@@ -319,11 +324,43 @@
   text-decoration: underline;
 }
 
+@media (max-width: 768px) {
+  .app {
+    --header-height: 76px;
+  }
+
+  .app-header {
+    padding: 16px 20px;
+    flex-direction: row;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    width: 100%;
+  }
+
+  .app-nav {
+    display: none;
+  }
+
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 480px) {
+  .app {
+    --header-height: 104px;
+  }
+
   .app-header {
     padding: 16px 20px;
     flex-direction: column;
     gap: 12px;
+    position: sticky;
+    top: 0;
+    width: 100%;
   }
 
   .brand-logo {
@@ -336,23 +373,5 @@
 
   .app-container h2 {
     font-size: 24px;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-header {
-    padding: 16px 20px;
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  .app-nav {
-    display: none;
-  }
-
-  .hamburger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 }
