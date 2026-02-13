@@ -104,10 +104,24 @@ function AppContent() {
                     <div className="corner-decor corner-right" />
                   </div>
                   <div className="home-hero-content">
-                    <h2>Remembering Justin D. Fowler</h2>
+                    <div className="memorial-card">
+                      <p className="memorial-kicker">Memorial Gathering</p>
+                      <h3 className="memorial-title">Remembering Justin D. Fowler</h3>
+                      <p className="memorial-details">Tuesday, February 17th · 4pm</p>
+                      <p className="memorial-venue">
+                        <a
+                          href="https://www.google.com/maps/search/?api=1&query=Tulip+Shop+Tavern+Portland"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Tulip Shop Tavern
+                        </a>
+                      </p>
+                      <p className="memorial-address">825 N Killingsworth St, Portland, OR</p>
+                    </div>
                     <p>
                       This space is for everyone who knew and loved Justin
-                      to share photos, videos, and recordings so we can
+                      to share some photos so we can
                       remember him together.
                       <br />
                       <br />

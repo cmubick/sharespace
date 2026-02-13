@@ -482,6 +482,16 @@ const GalleryPage = () => {
   return (
     <div className="gallery-page">
       <div className="gallery-container">
+        <div className="gallery-memorial-banner">
+          <span>Memorial Gathering · Feb 17 · 4pm · </span>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=Tulip+Shop+Tavern+Portland"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Tulip Shop Tavern
+          </a>
+        </div>
         {/* <h1>Gallery</h1> */}
 
         {/* Upload Success Message */}

@@ -8,6 +8,32 @@
   margin: 0 auto;
 }
 
+.gallery-memorial-banner {
+  position: static;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  background: #facc15;
+  color: #111;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: 100%;
+}
+
+.gallery-memorial-banner a {
+  color: #111;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .gallery-memorial-banner {
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+}
+
 .gallery-container h1 {
   color: #fff;
   margin-bottom: 2rem;
