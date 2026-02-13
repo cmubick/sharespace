@@ -28,41 +28,78 @@
   font-variant-numeric: tabular-nums;
 }
 
+.timeline-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 44px;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 999px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.25);
+}
+
 .timeline-input {
   width: 100%;
-  height: 6px;
+  height: 44px;
   border-radius: 3px;
-  background: linear-gradient(to right, var(--color-accent-light), var(--color-accent), var(--color-accent-hover));
+  background: transparent;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.timeline-input::-moz-range-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 999px;
 }
 
 /* Chrome/Safari slider thumb */
 .timeline-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: white;
   border: 2px solid var(--color-accent);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
+  margin-top: calc((6px - 24px) / 2);
 }
 
 .timeline-input::-webkit-slider-thumb:hover {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Firefox slider thumb */
 .timeline-input::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: white;
   border: 2px solid var(--color-accent);
@@ -72,8 +109,8 @@
 }
 
 .timeline-input::-moz-range-thumb:hover {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -104,18 +141,27 @@
     font-size: 0.8rem;
   }
 
+  .timeline-track {
+    height: 40px;
+  }
+
+  .timeline-line {
+    height: 6px;
+  }
+
   .timeline-input {
-    height: 4px;
+    height: 40px;
   }
 
   .timeline-input::-webkit-slider-thumb {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
+    margin-top: calc((6px - 22px) / 2);
   }
 
   .timeline-input::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
   }
 
   .timeline-current-year {

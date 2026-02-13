@@ -46,6 +46,16 @@ const GalleryPage = () => {
   const isFetchingRef = useRef(false)
   const viewportFilledRef = useRef(false)
   const hasInitializedRef = useRef(false)
+  const currentYearRef = useRef<number | null>(null)
+  const isProgrammaticScrollRef = useRef(false)
+  const isDraggingRef = useRef(false)
+  const isScrollSettlingRef = useRef(false)
+  const scrollSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dragReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollRafRef = useRef<number | null>(null)
+  const dragScrollRafRef = useRef<number | null>(null)
+  const pendingDragYearRef = useRef<number | null>(null)
 
   // Lazy loading refs
   const imageRefs = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -71,6 +81,10 @@ const GalleryPage = () => {
 
     return () => observerRef.current?.disconnect()
   }, [])
+
+  useEffect(() => {
+    currentYearRef.current = currentYear
+  }, [currentYear])
 
   // Observe image when added to DOM
   const observeImage = useCallback((id: string, img: HTMLImageElement | null) => {
@@ -293,6 +307,71 @@ const GalleryPage = () => {
     groupMediaByYear(items)
   }, [items])
 
+  // Sync timeline with scroll position (closest year to top)
+  useEffect(() => {
+    const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
+    if (!win) return
+    if (Object.keys(groupedMedia).length === 0) return
+
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current || isDraggingRef.current) return
+      if (isScrollSettlingRef.current) {
+        if (scrollSettleTimeoutRef.current) {
+          clearTimeout(scrollSettleTimeoutRef.current)
+        }
+        scrollSettleTimeoutRef.current = setTimeout(() => {
+          isScrollSettlingRef.current = false
+        }, 250)
+        return
+      }
+      if (scrollRafRef.current !== null) return
+
+      scrollRafRef.current = win.requestAnimationFrame(() => {
+        scrollRafRef.current = null
+
+        const sections = Array.from(
+          document.querySelectorAll<HTMLElement>('.year-section')
+        )
+          .map((section) => {
+            const yearValue = section.dataset.year
+            const parsedYear = yearValue ? parseInt(yearValue, 10) : NaN
+            return { section, year: parsedYear }
+          })
+          .filter(({ year }) => Number.isFinite(year))
+
+        if (sections.length === 0) return
+
+        let closest = sections[0]
+        let closestDistance = Math.abs(closest.section.getBoundingClientRect().top)
+
+        sections.forEach((entry) => {
+          const distance = Math.abs(entry.section.getBoundingClientRect().top)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closest = entry
+          }
+        })
+
+        if (closest.year !== currentYearRef.current) {
+          setCurrentYear(closest.year)
+        }
+      })
+    }
+
+    handleScroll()
+    win.addEventListener('scroll', handleScroll, { passive: true })
+    win.addEventListener('resize', handleScroll)
+
+    return () => {
+      win.removeEventListener('scroll', handleScroll)
+      win.removeEventListener('resize', handleScroll)
+      if (scrollRafRef.current !== null) {
+        win.cancelAnimationFrame(scrollRafRef.current)
+        scrollRafRef.current = null
+      }
+    }
+  }, [groupedMedia])
+
   // Scroll-based pagination (user-triggered)
   useEffect(() => {
     const win = typeof globalThis !== 'undefined' ? (globalThis as unknown as Window) : undefined
@@ -339,10 +418,59 @@ const GalleryPage = () => {
   // Handle year selection from timeline
   const handleYearSelect = useCallback((year: number) => {
     setCurrentYear(year)
+    if (scrollSyncTimeoutRef.current) {
+      clearTimeout(scrollSyncTimeoutRef.current)
+    }
+
     const yearElement = document.getElementById(`year-${year}`)
+
+    if (isDraggingRef.current) {
+      // Disable smooth scrolling during drag to prevent feedback loops and jitter.
+      pendingDragYearRef.current = year
+      if (dragScrollRafRef.current === null) {
+        dragScrollRafRef.current = requestAnimationFrame(() => {
+          dragScrollRafRef.current = null
+          const pendingYear = pendingDragYearRef.current
+          if (!pendingYear) return
+          const pendingElement = document.getElementById(`year-${pendingYear}`)
+          if (pendingElement) {
+            pendingElement.scrollIntoView({ behavior: 'auto', block: 'start' })
+          }
+        })
+      }
+      return
+    }
+
+    isProgrammaticScrollRef.current = true
     if (yearElement) {
       yearElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
+    scrollSyncTimeoutRef.current = setTimeout(() => {
+      isProgrammaticScrollRef.current = false
+    }, 600)
+  }, [])
+
+  const handleTimelineDragStart = useCallback(() => {
+    isDraggingRef.current = true
+    if (dragReleaseTimeoutRef.current) {
+      clearTimeout(dragReleaseTimeoutRef.current)
+    }
+  }, [])
+
+  const handleTimelineDragEnd = useCallback(() => {
+    if (dragReleaseTimeoutRef.current) {
+      clearTimeout(dragReleaseTimeoutRef.current)
+    }
+    dragReleaseTimeoutRef.current = setTimeout(() => {
+      isDraggingRef.current = false
+    }, 150)
+    isScrollSettlingRef.current = true
+    if (scrollSettleTimeoutRef.current) {
+      clearTimeout(scrollSettleTimeoutRef.current)
+    }
+    scrollSettleTimeoutRef.current = setTimeout(() => {
+      isScrollSettlingRef.current = false
+    }, 250)
   }, [])
 
   // Get available years from grouped media
@@ -383,7 +511,12 @@ const GalleryPage = () => {
         ) : (
           <div className="gallery-content">
             {Object.entries(groupedMedia).map(([year, items]) => (
-              <section key={year} id={`year-${year}`} className="year-section">
+              <section
+                key={year}
+                id={`year-${year}`}
+                className="year-section"
+                data-year={year}
+              >
                 <h2 className="year-header">{year}</h2>
                 <div className="media-grid">
                   {items.map((item) => (
@@ -482,6 +615,8 @@ const GalleryPage = () => {
         years={availableYears}
         currentYear={currentYear}
         onYearSelect={handleYearSelect}
+        onDragStart={handleTimelineDragStart}
+        onDragEnd={handleTimelineDragEnd}
       />
     </div>
   )

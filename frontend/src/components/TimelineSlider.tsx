@@ -1,13 +1,15 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import '../styles/TimelineSlider.css'
 
 interface TimelineSliderProps {
   years: number[]
   currentYear: number | null
   onYearSelect: (year: number) => void
+  onDragStart?: () => void
+  onDragEnd?: () => void
 }
 
-const TimelineSlider = ({ years, currentYear, onYearSelect }: TimelineSliderProps) => {
+const TimelineSlider = ({ years, currentYear, onYearSelect, onDragStart, onDragEnd }: TimelineSliderProps) => {
   const [sliderValue, setSliderValue] = useState(0)
 
   // Calculate year range using useMemo
@@ -39,6 +41,15 @@ const TimelineSlider = ({ years, currentYear, onYearSelect }: TimelineSliderProp
     [minYear, maxYear, years, onYearSelect]
   )
 
+  useEffect(() => {
+    if (!minYear || !maxYear) return
+    const targetYear = currentYear ?? minYear
+    const clampedYear = Math.min(Math.max(targetYear, minYear), maxYear)
+    const yearRange = maxYear - minYear
+    const nextValue = yearRange === 0 ? 0 : ((clampedYear - minYear) / yearRange) * 100
+    setSliderValue(nextValue)
+  }, [currentYear, minYear, maxYear])
+
   // Don't render if no years available
   if (years.length === 0) return null
 
@@ -49,15 +60,23 @@ const TimelineSlider = ({ years, currentYear, onYearSelect }: TimelineSliderProp
         <span className="timeline-year">{maxYear}</span>
       </div>
 
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={sliderValue}
-        onChange={handleSliderChange}
-        className="timeline-input"
-        aria-label="Year slider"
-      />
+      <div className="timeline-track">
+        <div className="timeline-line" aria-hidden="true"></div>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={sliderValue}
+          onChange={handleSliderChange}
+          onPointerDown={onDragStart}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          onTouchStart={onDragStart}
+          onTouchEnd={onDragEnd}
+          className="timeline-input"
+          aria-label="Year slider"
+        />
+      </div>
 
       <div className="timeline-current">
         <div className="timeline-current-year">
