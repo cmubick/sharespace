@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Link } from 'react-router-dom'
 import { clearSession } from './services/auth'
+import FeedbackModal from './components/FeedbackModal'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import UploadPage from './pages/UploadPage'
@@ -13,6 +14,7 @@ function AppContent() {
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
   const [logoFailed, setLogoFailed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
 
   const handleLogout = () => {
     clearSession()
@@ -84,6 +86,15 @@ function AppContent() {
               <Link to="/slideshow" className="drawer-link" onClick={() => setDrawerOpen(false)}>
                 Slideshow Mode
               </Link>
+              <button
+                className="drawer-link"
+                onClick={() => {
+                  setDrawerOpen(false)
+                  setFeedbackModalOpen(true)
+                }}
+              >
+                Send Feedback
+              </button>
               <button className="drawer-link drawer-logout" onClick={() => { setDrawerOpen(false); handleLogout() }}>
                 Logout
               </button>
@@ -165,10 +176,22 @@ function AppContent() {
         </Routes>
       </main>
       <footer className="site-footer">
-        <p>
-          Listen to: <a href="https://woodenindianburialground.bandcamp.com/" target="_blank" rel="noopener noreferrer">W.I.B.G.</a>
-        </p>
+        <div className="site-footer-content">
+          <p>
+            Listen to: <a href="https://woodenindianburialground.bandcamp.com/" target="_blank" rel="noopener noreferrer">W.I.B.G.</a>
+          </p>
+          <button
+            className="feedback-footer-link"
+            onClick={() => setFeedbackModalOpen(true)}
+          >
+            Send feedback or report an issue
+          </button>
+        </div>
       </footer>
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+      />
     </div>
   )
 }

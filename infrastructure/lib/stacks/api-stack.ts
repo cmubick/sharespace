@@ -97,6 +97,15 @@ export class ApiStack extends Construct {
       ],
     })
 
+    // Add SES permissions for feedback emails
+    this.lambdaExecutionRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+        resources: ['*'],
+      })
+    )
+
     // Create Lambda functions for handlers
     // Use the full dist directory which includes node_modules and compiled code
     const backendDistPath = path.resolve(path.join(__dirname, '../../../..', 'backend/dist'))
@@ -174,6 +183,21 @@ export class ApiStack extends Construct {
       memorySize: 512,
     })
 
+    const feedbackHandler = new lambda.Function(this, 'FeedbackHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'lambdas/feedback/feedback.handler',
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
+      role: this.lambdaExecutionRole,
+      environment: {
+        FEEDBACK_EMAIL: 'chrisubick@gmail.com',
+        SES_SENDER_EMAIL: 'noreply@sharespace.memorial',
+      },
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 256,
+    })
+
     mediaBucket.grantRead(thumbnailHandler, 'uploads/*')
     mediaBucket.grantPut(thumbnailHandler, 'thumbnails/*')
 
@@ -190,6 +214,7 @@ export class ApiStack extends Construct {
     const refreshResource = authResource.addResource('refresh')
 
     const mediaResource = this.api.root.addResource('media')
+    const feedbackResource = this.api.root.addResource('feedback')
     const userResource = this.api.root.addResource('user')
     const profileResource = userResource.addResource('profile')
 
@@ -245,6 +270,19 @@ export class ApiStack extends Construct {
       ],
     })
 
+    const feedbackIntegration = new apigateway.LambdaIntegration(feedbackHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
+          },
+        },
+      ],
+    })
+
     // Media endpoints
     mediaResource.addMethod('POST', uploadIntegration, {
       methodResponses: [
@@ -259,6 +297,20 @@ export class ApiStack extends Construct {
       ],
     })
     mediaResource.addMethod('GET', listIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
+    })
+
+    // Feedback endpoint
+    feedbackResource.addMethod('POST', feedbackIntegration, {
       methodResponses: [
         {
           statusCode: '200',

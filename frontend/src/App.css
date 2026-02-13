@@ -363,9 +363,32 @@
   font-size: 14px;
 }
 
+.site-footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
 .site-footer a {
   color: #000;
   text-decoration: underline;
+}
+
+.feedback-footer-link {
+  background: none;
+  border: none;
+  color: #000;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.feedback-footer-link:hover {
+  opacity: 0.7;
 }
 
 @media (max-width: 768px) {
