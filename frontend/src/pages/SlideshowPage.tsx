@@ -28,7 +28,9 @@ const SlideshowPage = () => {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [autoplay, setAutoplay] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>('chronological')
-  const [uiVisible, setUiVisible] = useState(true)
+  const [showControlsOverlay, setShowControlsOverlay] = useState(true)
+  const [showCaptionOverlay, setShowCaptionOverlay] = useState(true)
+  const [showKeyboardHints, setShowKeyboardHints] = useState(true)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
@@ -209,6 +211,7 @@ const SlideshowPage = () => {
       }
       isFetchingRef.current = false
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [PAGE_SIZE, hasMore, insertRandomly, lastKey, randomizeMedia, sortMediaChronologically, sortOrder])
 
   // Load media data
@@ -218,28 +221,42 @@ const SlideshowPage = () => {
     loadMediaPage({ reset: true })
   }, [loadMediaPage])
 
+
+
   const scheduleHide = useCallback((interactionTime: number) => {
     if (uiHideTimerRef.current) {
       clearTimeout(uiHideTimerRef.current)
     }
 
+    // Show controls and captions on interaction
+    setShowControlsOverlay(true)
+    setShowCaptionOverlay(true)
+
     uiHideTimerRef.current = setTimeout(() => {
       if (Date.now() - interactionTime >= HIDE_DELAY_MS) {
-        setUiVisible(false)
+        // Hide only control overlay, keep captions visible
+        setShowControlsOverlay(false)
       }
     }, HIDE_DELAY_MS)
   }, [HIDE_DELAY_MS])
 
   const registerInteraction = useCallback(() => {
     const now = Date.now()
-    setUiVisible(true)
+    setShowControlsOverlay(true)
+    setShowCaptionOverlay(true)
     scheduleHide(now)
   }, [scheduleHide])
 
   useEffect(() => {
     const updateInitialVisibility = () => {
       if (window.innerWidth <= 768) {
-        setUiVisible(false)
+        // Mobile: hide controls but keep captions visible
+        setShowControlsOverlay(false)
+        setShowCaptionOverlay(true)
+      } else {
+        // Desktop: show both initially
+        setShowControlsOverlay(true)
+        setShowCaptionOverlay(true)
       }
     }
 
@@ -248,11 +265,40 @@ const SlideshowPage = () => {
     return () => window.removeEventListener('resize', updateInitialVisibility)
   }, [])
 
+  // Show controls for 2 seconds on slideshow load, then let them fade based on mouse
   useEffect(() => {
-    const now = Date.now()
-    setUiVisible(true)
-    scheduleHide(now)
-  }, [scheduleHide])
+    setShowCaptionOverlay(true)
+    setShowControlsOverlay(true)
+    setShowKeyboardHints(true)
+
+    const hintsTimer = setTimeout(() => {
+      setShowKeyboardHints(false)
+    }, 2000)
+
+    // Schedule controls to hide after HIDE_DELAY_MS from load
+    const controlsTimer = setTimeout(() => {
+      setShowControlsOverlay(false)
+    }, HIDE_DELAY_MS)
+
+    return () => {
+      clearTimeout(controlsTimer)
+      clearTimeout(hintsTimer)
+    }
+  }, [HIDE_DELAY_MS])
+
+  // Handle mouse/touch movement to show UI controls
+  useEffect(() => {
+    const handleMouseMove = () => registerInteraction()
+    const handleTouchStart = () => registerInteraction()
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchstart', handleTouchStart)
+    }
+  }, [registerInteraction])
 
   // Handle sort order change
   const handleSortChange = useCallback(
@@ -282,10 +328,10 @@ const SlideshowPage = () => {
         return sorted
       })
     },
-    [media, randomizeMedia, sortMediaChronologically]
+    [randomizeMedia, sortMediaChronologically]
   )
 
-  // Handle mouse/touch movement to show UI
+  // Handle mouse/touch movement to show UI controls
   useEffect(() => {
     const handleMouseMove = () => registerInteraction()
     const handleTouchStart = () => registerInteraction()
@@ -373,14 +419,6 @@ const SlideshowPage = () => {
     setAutoplay((prev) => !prev)
   }, [])
 
-  useEffect(() => {
-    if (autoplay) {
-      const now = Date.now()
-      setUiVisible(true)
-      scheduleHide(now)
-    }
-  }, [autoplay, scheduleHide])
-
   const resolveMediaUrl = useCallback((s3Key: string) => getMediaUrl(s3Key), [])
 
   useEffect(() => {
@@ -430,6 +468,7 @@ const SlideshowPage = () => {
     }
 
     setNextReady(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingIndex, media, resolveMediaUrl])
 
   useEffect(() => {
@@ -537,11 +576,23 @@ const SlideshowPage = () => {
         )}
       </div>
 
-      {/* UI Controls */}
-      <div className={`slideshow-controls ${uiVisible ? 'visible' : 'hidden'}`}>
+      {/* UI Controls - Hides after inactivity */}
+      <div className={`slideshow-controls ${showControlsOverlay ? 'visible' : 'hidden'}`}>
         {/* Top Bar */}
         <div className="controls-top">
           <div className="media-title">{currentMedia.filename}</div>
+          <div className="top-center">
+            <div className="media-counter">
+              {currentIndex + 1} / {media.length}{loadingMore ? ' • Loading more…' : ''}
+            </div>
+            <button
+              className={`control-btn autoplay-btn ${autoplay ? 'active' : ''}`}
+              onClick={toggleAutoplay}
+              title="Toggle Autoplay (Space)"
+            >
+              {autoplay ? '⏸' : '▶'}
+            </button>
+          </div>
           <div className="controls-buttons">
             <button
               className="control-btn sort-btn"
@@ -562,7 +613,7 @@ const SlideshowPage = () => {
           </div>
         </div>
 
-        {/* Center Controls */}
+        {/* Center Controls - Only navigation arrows */}
         <div className="controls-center">
           <button
             className="control-btn nav-btn prev"
@@ -572,19 +623,6 @@ const SlideshowPage = () => {
             ‹
           </button>
 
-          <div className="center-info">
-            <div className="media-counter">
-              {currentIndex + 1} / {media.length}{loadingMore ? ' • Loading more…' : ''}
-            </div>
-            <button
-              className={`control-btn autoplay-btn ${autoplay ? 'active' : ''}`}
-              onClick={toggleAutoplay}
-              title="Toggle Autoplay (Space)"
-            >
-              {autoplay ? '⏸' : '▶'}
-            </button>
-          </div>
-
           <button
             className="control-btn nav-btn next"
             onClick={nextSlide}
@@ -593,37 +631,37 @@ const SlideshowPage = () => {
             ›
           </button>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="controls-bottom">
-          <div className="media-info">
-            <div className="info-row">
-              <span className="label">By:</span>
-              <span className="value">{currentMedia.uploader}</span>
-            </div>
-            {currentMedia.caption && (
-              <div className="info-row">
-                <span className="label">Caption:</span>
-                <span className="value">{currentMedia.caption}</span>
-              </div>
-            )}
-            {currentMedia.year && (
-              <div className="info-row">
-                <span className="label">Year:</span>
-                <span className="value">{currentMedia.year}</span>
-              </div>
-            )}
+      {/* Caption/Metadata Overlay - Always visible during playback */}
+      <div className={`slideshow-captions ${showCaptionOverlay ? 'visible' : 'hidden'}`}>
+        <div className="media-info">
+          <div className="info-row">
+            <span className="label">By:</span>
+            <span className="value">{currentMedia.uploader}</span>
           </div>
+          {currentMedia.caption && (
+            <div className="info-row">
+              <span className="label">Caption:</span>
+              <span className="value">{currentMedia.caption}</span>
+            </div>
+          )}
+          {currentMedia.year && (
+            <div className="info-row">
+              <span className="label">Year:</span>
+              <span className="value">{currentMedia.year}</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className={`slideshow-progress ${uiVisible ? 'visible' : ''}`}>
+      <div className={`slideshow-progress ${showControlsOverlay ? 'visible' : ''}`}>
         <div className="progress-fill" style={{ width: `${((currentIndex + 1) / media.length) * 100}%` }}></div>
       </div>
 
       {/* Keyboard Hints (show briefly on load) */}
-      {uiVisible && (
+      {showKeyboardHints && (
         <div className="keyboard-hints">
           <div className="hints-content">
             <p>

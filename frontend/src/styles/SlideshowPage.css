@@ -150,6 +150,7 @@
 
 .slideshow-controls.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .slideshow-controls > div {
@@ -159,28 +160,44 @@
 /* Top Bar */
 .controls-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 1rem;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2));
   padding: 1rem;
   margin: -2rem -2rem 0 -2rem;
   padding-top: 2rem;
+  position: relative;
+  z-index: 201;
+  pointer-events: auto;
+}
+
+.top-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  order: 0;
 }
 
 .media-title {
   color: #111;
   font-size: 1.2rem;
   font-weight: 500;
-  flex: 1;
+  position: absolute;
+  left: 1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 20%;
 }
 
 .controls-buttons {
   display: flex;
   gap: 1rem;
+  pointer-events: auto;
+  position: absolute;
+  right: 1rem;
 }
 
 /* Control Button */
@@ -195,6 +212,7 @@
   transition: all 0.3s ease;
   backdrop-filter: blur(6px);
   font-weight: 600;
+  pointer-events: auto;
 }
 
 .control-btn:hover {
@@ -216,10 +234,39 @@
 
 /* Center Controls */
 .controls-center {
+  position: absolute;
+  top: 1rem;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 4rem;
+  padding: 0 2.5rem;
+  pointer-events: none;
+  z-index: 199;
+}
+
+.controls-center .nav-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 202;
+  pointer-events: auto;
+}
+
+.controls-center .nav-btn.prev {
+  left: 2.5rem;
+}
+
+.controls-center .nav-btn.next {
+  right: 2.5rem;
+}
+
+.controls-center .center-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
 .nav-btn {
@@ -251,6 +298,9 @@
   align-items: center;
   gap: 1rem;
   min-width: 150px;
+  pointer-events: auto;
+  z-index: 202;
+  position: relative;
 }
 
 .media-counter {
@@ -284,6 +334,42 @@
   padding: 1rem;
   margin: 0 -2rem -2rem -2rem;
   padding-bottom: 2rem;
+}
+
+/* Caption/Metadata Overlay - Always visible during playback */
+.slideshow-captions {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 210;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  max-width: 90%;
+  max-height: 30vh;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.slideshow-captions.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.slideshow-captions.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.slideshow-captions .media-info {
+  color: #111;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .media-info {
@@ -348,8 +434,8 @@
 
 /* Keyboard Hints */
 .keyboard-hints {
-  position: absolute;
-  bottom: 2rem;
+  position: fixed;
+  bottom: 25%;
   left: 0;
   right: 0;
   display: flex;
@@ -395,7 +481,7 @@
   }
 
   .controls-center {
-    gap: 2rem;
+    padding: 0 2rem;
   }
 
   .nav-btn {
@@ -440,7 +526,7 @@
   }
 
   .controls-center {
-    gap: 1.5rem;
+    padding: 0 1.5rem;
   }
 
   .nav-btn {
@@ -483,6 +569,16 @@
     font-size: 0.75rem;
     padding: 0.5rem 1rem;
   }
+
+  .slideshow-captions {
+    bottom: 0.5rem;
+    max-width: 95%;
+    max-height: 25vh;
+  }
+
+  .slideshow-captions .media-info {
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -513,8 +609,8 @@
   }
 
   .controls-center {
-    gap: 1rem;
-    margin: 0 -1rem;
+    padding: 0 1rem;
+    margin: 0;
   }
 
   .nav-btn {
@@ -557,6 +653,26 @@
 
   .slideshow-progress {
     height: 3px;
+  }
+
+  .slideshow-captions {
+    bottom: 0.25rem;
+    max-width: 98%;
+    max-height: 20vh;
+  }
+
+  .slideshow-captions .media-info {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .slideshow-captions .info-row {
+    font-size: 0.7rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .slideshow-captions .info-row .label {
+    min-width: 35px;
   }
 }
 
