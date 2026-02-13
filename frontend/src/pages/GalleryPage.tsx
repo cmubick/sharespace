@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import MediaViewer from '../components/MediaViewer.tsx'
+import TimelineSlider from '../components/TimelineSlider.tsx'
 import { getApiUrl, getMediaUrl } from '../services/api'
 import { getUserId } from '../services/auth'
 import { mockMedia } from '../mocks/mockMedia'
@@ -38,6 +39,7 @@ const GalleryPage = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
   const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [currentYear, setCurrentYear] = useState<number | null>(null)
   const uploadedMediaId = (location.state as LocationState)?.uploadedMediaId
   const useMocks = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
 
@@ -334,6 +336,21 @@ const GalleryPage = () => {
     return '📄'
   }
 
+  // Handle year selection from timeline
+  const handleYearSelect = useCallback((year: number) => {
+    setCurrentYear(year)
+    const yearElement = document.getElementById(`year-${year}`)
+    if (yearElement) {
+      yearElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
+  // Get available years from grouped media
+  const availableYears = Object.keys(groupedMedia)
+    .filter(year => year !== 'Unknown Year')
+    .map(year => parseInt(year))
+    .sort((a, b) => a - b)
+
   return (
     <div className="gallery-page">
       <div className="gallery-container">
@@ -366,7 +383,7 @@ const GalleryPage = () => {
         ) : (
           <div className="gallery-content">
             {Object.entries(groupedMedia).map(([year, items]) => (
-              <section key={year} className="year-section">
+              <section key={year} id={`year-${year}`} className="year-section">
                 <h2 className="year-header">{year}</h2>
                 <div className="media-grid">
                   {items.map((item) => (
@@ -459,6 +476,13 @@ const GalleryPage = () => {
           onDelete={removeMediaItem}
         />
       )}
+      
+      {/* Timeline Slider */}
+      <TimelineSlider 
+        years={availableYears}
+        currentYear={currentYear}
+        onYearSelect={handleYearSelect}
+      />
     </div>
   )
 }
