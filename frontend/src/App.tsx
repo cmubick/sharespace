@@ -114,6 +114,15 @@ function AppContent() {
                     <div className="corner-decor corner-left" />
                     <div className="corner-decor corner-right" />
                   </div>
+                  <div className="home-hero-flyer">
+                    <img
+                      src="/assets/flyer-medium.jpg"
+                      srcSet="/assets/flyer-small.jpg 600w, /assets/flyer-medium.jpg 900w, /assets/flyer-large.jpg 1600w"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1100px"
+                      alt="Memorial gathering flyer for Justin D. Fowler"
+                      className="memorial-flyer"
+                    />
+                  </div>
                   <div className="home-hero-content">
                     <div className="memorial-card">
                       <p className="memorial-kicker">Memorial Gathering</p>
