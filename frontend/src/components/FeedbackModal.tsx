@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getApiUrl } from '../services/api'
 import '../styles/FeedbackModal.css'
 
 interface FeedbackModalProps {
@@ -25,7 +26,7 @@ const FeedbackModal = ({ isOpen, onClose }: FeedbackModalProps) => {
     setErrorMessage('')
 
     try {
-      const response = await fetch('/api/feedback', {
+      const response = await fetch(getApiUrl('/feedback'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
