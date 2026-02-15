@@ -192,7 +192,7 @@ export class ApiStack extends Construct {
       role: this.lambdaExecutionRole,
       environment: {
         FEEDBACK_EMAIL: 'chrisubick@gmail.com',
-        SES_SENDER_EMAIL: 'noreply@sharespace.memorial',
+        SES_SENDER_EMAIL: 'noreply@itsonlycastlesburning.com',
       },
       timeout: cdk.Duration.seconds(10),
       memorySize: 256,

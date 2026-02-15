@@ -44,7 +44,7 @@ export const handler = async (event: any) => {
     }
 
     const recipientEmail = process.env.FEEDBACK_EMAIL || 'chrisubick@gmail.com'
-    const senderEmail = process.env.SES_SENDER_EMAIL || 'noreply@sharespace.memorial'
+    const senderEmail = process.env.SES_SENDER_EMAIL || 'noreply@itsonlycastlesburning.com'
 
     // Format the email body
     const emailBody = formatEmailBody(payload)
