@@ -27,6 +27,27 @@
   font-weight: 700;
 }
 
+.gallery-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.gallery-download-button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gallery-download-button:hover {
+  background: #efefef;
+  border-color: #cfcfcf;
+}
+
 @media (max-width: 768px) {
   .gallery-memorial-banner {
     margin-bottom: 0.75rem;
@@ -223,6 +244,79 @@
   align-items: center;
   justify-content: center;
   background-color: #f2f2f2;
+}
+
+.archive-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+}
+
+.archive-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.archive-modal h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  color: #111;
+}
+
+.archive-modal p {
+  margin: 0 0 16px;
+  color: #444;
+}
+
+.archive-progress {
+  background: #f0f0f0;
+  border-radius: 999px;
+  overflow: hidden;
+  height: 10px;
+  margin-bottom: 16px;
+}
+
+.archive-progress-bar {
+  height: 100%;
+  background: #111;
+  transition: width 0.4s ease;
+}
+
+.archive-error {
+  color: #b91c1c;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.archive-success {
+  color: #14532d;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.archive-close {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .gallery-actions {
+    justify-content: center;
+  }
 }
 
 .media-icon {

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import MediaViewer from '../components/MediaViewer.tsx'
 import TimelineSlider from '../components/TimelineSlider.tsx'
+import ArchiveDownloadModal from '../components/ArchiveDownloadModal'
 import { getApiUrl, getMediaUrl } from '../services/api'
 import { getUserId } from '../services/auth'
 import { mockMedia } from '../mocks/mockMedia'
@@ -36,6 +37,7 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false)
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
   const [lastKey, setLastKey] = useState<Record<string, unknown> | null>(null)
   const [hasMore, setHasMore] = useState(true)
@@ -492,6 +494,15 @@ const GalleryPage = () => {
             Tulip Shop Tavern
           </a>
         </div>
+        <div className="gallery-actions">
+          <button
+            className="gallery-download-button"
+            type="button"
+            onClick={() => setArchiveModalOpen(true)}
+          >
+            Download All Photos
+          </button>
+        </div>
         {/* <h1>Gallery</h1> */}
 
         {/* Upload Success Message */}
@@ -627,6 +638,11 @@ const GalleryPage = () => {
         onYearSelect={handleYearSelect}
         onDragStart={handleTimelineDragStart}
         onDragEnd={handleTimelineDragEnd}
+      />
+
+      <ArchiveDownloadModal
+        isOpen={archiveModalOpen}
+        onClose={() => setArchiveModalOpen(false)}
       />
     </div>
   )

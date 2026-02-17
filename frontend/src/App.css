@@ -147,6 +147,22 @@
   background-color: #f0f0f0;
 }
 
+.nav-link:focus,
+.nav-button:focus,
+.drawer-link:focus,
+.logout-button:focus {
+  outline: none;
+}
+
+.nav-link:focus-visible,
+.drawer-link:focus-visible,
+.logout-button:focus-visible,
+.nav-button:focus-visible {
+  outline: 3px solid #ffd400;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .logout-button {
   padding: 10px 20px;
   background: #f5f5f5;
