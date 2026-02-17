@@ -183,6 +183,21 @@ export class ApiStack extends Construct {
       memorySize: 512,
     })
 
+    const archiveHandler = new lambda.Function(this, 'ArchiveHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'lambdas/media/archive.handler',
+      code: lambda.Code.fromAsset(backendDistPath, {
+        exclude: ['*.ts', '*.d.ts', '*.map'],
+      }),
+      role: this.lambdaExecutionRole,
+      environment: {
+        MEDIA_BUCKET: mediaBucket.bucketName,
+        MEDIA_TABLE: mediaTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 1024,
+    })
+
     const feedbackHandler = new lambda.Function(this, 'FeedbackHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'lambdas/feedback/feedback.handler',
@@ -200,6 +215,9 @@ export class ApiStack extends Construct {
 
     mediaBucket.grantRead(thumbnailHandler, 'uploads/*')
     mediaBucket.grantPut(thumbnailHandler, 'thumbnails/*')
+    mediaBucket.grantRead(archiveHandler, 'uploads/*')
+    mediaBucket.grantRead(archiveHandler, 'archives/*')
+    mediaBucket.grantPut(archiveHandler, 'archives/*')
 
     mediaBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
@@ -283,6 +301,19 @@ export class ApiStack extends Construct {
       ],
     })
 
+    const archiveIntegration = new apigateway.LambdaIntegration(archiveHandler, {
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'https://itsonlycastlesburning.com'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST,PUT,DELETE'",
+          },
+        },
+      ],
+    })
+
     // Media endpoints
     mediaResource.addMethod('POST', uploadIntegration, {
       methodResponses: [
@@ -297,6 +328,20 @@ export class ApiStack extends Construct {
       ],
     })
     mediaResource.addMethod('GET', listIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
+    })
+
+    const archiveResource = mediaResource.addResource('archive')
+    archiveResource.addMethod('POST', archiveIntegration, {
       methodResponses: [
         {
           statusCode: '200',

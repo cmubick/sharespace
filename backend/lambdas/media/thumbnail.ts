@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import type { S3Event } from 'aws-lambda'
@@ -18,6 +18,7 @@ const dynamoDb = DynamoDBDocumentClient.from(
 const MEDIA_BUCKET = process.env.MEDIA_BUCKET || 'sharespace-media'
 const MEDIA_TABLE = process.env.MEDIA_TABLE || 'sharespace-media-table'
 const MAX_THUMBNAIL_SIZE = 400
+const ARCHIVE_KEY = 'archives/photos-latest.zip'
 
 const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp']
 
@@ -49,6 +50,18 @@ export const handler = async (event: S3Event): Promise<void> => {
     if (!isImage) {
       console.log(`Skipping non-image object: ${key}`)
       continue
+    }
+
+    try {
+      await s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: bucket || MEDIA_BUCKET,
+          Key: ARCHIVE_KEY,
+        })
+      )
+      console.log('Invalidated photo archive', { archiveKey: ARCHIVE_KEY })
+    } catch (err) {
+      console.log('Archive invalidation skipped', { error: err })
     }
 
     const keyParts = key.split('/').filter(Boolean)
