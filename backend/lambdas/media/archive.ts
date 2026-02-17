@@ -69,6 +69,41 @@ const buildArchiveFileName = (item: MediaItem): string => {
   return `${yearPart}-${captionPart}-${uploaderPart}${extension}`
 }
 
+const makeUniqueFileName = (baseName: string, usedNames: Map<string, number>): string => {
+  // Check if name already exists
+  if (!usedNames.has(baseName)) {
+    usedNames.set(baseName, 0)
+    return baseName
+  }
+
+  // Parse extension and base
+  const lastDotIndex = baseName.lastIndexOf('.')
+  let nameWithoutExt: string
+  let extension: string
+
+  if (lastDotIndex > 0) {
+    nameWithoutExt = baseName.substring(0, lastDotIndex)
+    extension = baseName.substring(lastDotIndex)
+  } else {
+    nameWithoutExt = baseName
+    extension = ''
+  }
+
+  // Find next available number
+  let counter = (usedNames.get(baseName) || 0) + 1
+  let uniqueName: string
+
+  while (true) {
+    uniqueName = `${nameWithoutExt} (${counter})${extension}`
+    if (!usedNames.has(uniqueName)) {
+      usedNames.set(baseName, counter)
+      usedNames.set(uniqueName, 0)
+      return uniqueName
+    }
+    counter++
+  }
+}
+
 const getArchiveDownloadUrl = async () => {
   const getCommand = new GetObjectCommand({
     Bucket: MEDIA_BUCKET,
@@ -108,6 +143,7 @@ const buildArchive = async (items: MediaItem[]) => {
   const tmpPath = '/tmp/photos.zip'
   const archiveStream = archiver('zip', { zlib: { level: 9 } })
   const output = fs.createWriteStream(tmpPath)
+  const usedFileNames = new Map<string, number>()
 
   archiveStream.pipe(output)
 
@@ -124,8 +160,9 @@ const buildArchive = async (items: MediaItem[]) => {
         continue
       }
 
-      const fileName = buildArchiveFileName(item)
-      const entryName = `${ARCHIVE_FOLDER}/${fileName}`
+      const baseFileName = buildArchiveFileName(item)
+      const uniqueFileName = makeUniqueFileName(baseFileName, usedFileNames)
+      const entryName = `${ARCHIVE_FOLDER}/${uniqueFileName}`
       
       // Convert SDK v3 stream to Node.js Readable
       const bodyStream = getResult.Body as Readable
