@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, useNavigate, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom'
 import { clearSession } from './services/auth'
+import { getApiUrl } from './services/api'
 import FeedbackModal from './components/FeedbackModal'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -11,15 +12,91 @@ import './App.css'
 
 function AppContent() {
   const navigate = useNavigate()
+  const location = useLocation()
   const hasAccess = localStorage.getItem('sharespace_access') === 'true'
   const [logoFailed, setLogoFailed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
+  const [updatesEmail, setUpdatesEmail] = useState('')
+  const [updatesParticipate, setUpdatesParticipate] = useState(false)
+  const [updatesInstrument, setUpdatesInstrument] = useState('')
+  const [updatesSubmitting, setUpdatesSubmitting] = useState(false)
+  const [updatesStatus, setUpdatesStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [updatesError, setUpdatesError] = useState('')
 
   const handleLogout = () => {
     clearSession()
     localStorage.removeItem('sharespace_access')
     navigate('/login')
+  }
+
+  const scrollToCelebrationUpdates = () => {
+    const target = document.getElementById('celebration-updates')
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  const handleCelebrationUpdatesNav = () => {
+    setDrawerOpen(false)
+    if (window.location.pathname !== '/') {
+      navigate('/#celebration-updates')
+      return
+    }
+    window.location.hash = 'celebration-updates'
+    scrollToCelebrationUpdates()
+  }
+
+  const handleUpdatesSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!updatesEmail.trim()) {
+      setUpdatesError('Please enter your email address.')
+      return
+    }
+
+    setUpdatesSubmitting(true)
+    setUpdatesError('')
+
+    const message = [
+      'Celebration of Life Update Signup',
+      '',
+      `Email: ${updatesEmail.trim()}`,
+      `Participation interest: ${updatesParticipate ? 'Yes' : 'No'}`,
+      `Notes: ${updatesInstrument.trim() || 'None provided'}`,
+    ].join('\n')
+
+    try {
+      const response = await fetch(getApiUrl('/feedback'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          email: updatesEmail.trim(),
+          subject: 'Celebration of Life Update Signup',
+          pageUrl: window.location.href,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit updates signup')
+      }
+
+      setUpdatesStatus('success')
+      setUpdatesEmail('')
+      setUpdatesParticipate(false)
+      setUpdatesInstrument('')
+    } catch (err) {
+      console.error('Updates signup error:', err)
+      setUpdatesStatus('error')
+      setUpdatesError('Unable to submit right now. Please try again.')
+    } finally {
+      setUpdatesSubmitting(false)
+    }
   }
 
   useEffect(() => {
@@ -35,6 +112,14 @@ function AppContent() {
 
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [drawerOpen])
+
+  useEffect(() => {
+    if (location.hash === '#celebration-updates') {
+      window.requestAnimationFrame(() => {
+        scrollToCelebrationUpdates()
+      })
+    }
+  }, [location.hash])
 
   return (
     <div className="app">
@@ -66,6 +151,9 @@ function AppContent() {
             <Link to="/upload" className="nav-link">Upload</Link>
             <Link to="/gallery" className="nav-link">Gallery</Link>
             <Link to="/slideshow" className="nav-link">Slideshow</Link>
+            <button className="nav-link nav-button" onClick={handleCelebrationUpdatesNav}>
+              Celebration Updates
+            </button>
             <button className="logout-button" onClick={handleLogout}>
               Logout
             </button>
@@ -86,6 +174,9 @@ function AppContent() {
               <Link to="/slideshow" className="drawer-link" onClick={() => setDrawerOpen(false)}>
                 Slideshow Mode
               </Link>
+              <button className="drawer-link" onClick={handleCelebrationUpdatesNav}>
+                Celebration Updates
+              </button>
               <button
                 className="drawer-link"
                 onClick={() => {
@@ -154,6 +245,75 @@ function AppContent() {
                     </div>
                     <div className="home-footer">Site in progress — thank you for helping test and improve it.</div>
                   </div>
+                  <section id="celebration-updates" className="celebration-updates">
+                    <h3>Future Celebration of Life at Cherry Sprout Park</h3>
+                    <p>
+                      We’re planning a larger community celebration of Justin’s
+                      life at Cherry Sprout Park later this spring or summer,
+                      with friends gathering to share memories and music.
+                    </p>
+                    <p>
+                      If you’d like to hear when details are finalized, leave
+                      your email and we’ll share updates as plans come together.
+                    </p>
+                    <p>
+                      If you’re a musician and might like to play or participate,
+                      let us know below — we’d love to include friends who want
+                      to share music in Justin’s honor.
+                    </p>
+                    <p>No spam, just event details when we have them.</p>
+
+                    {updatesStatus === 'success' ? (
+                      <div className="celebration-updates-success">
+                        Thank you. We’ll share updates as plans come together.
+                      </div>
+                    ) : (
+                      <form className="celebration-updates-form" onSubmit={handleUpdatesSubmit}>
+                        <label htmlFor="celebration-email">Email *</label>
+                        <input
+                          id="celebration-email"
+                          type="email"
+                          value={updatesEmail}
+                          onChange={(e) => setUpdatesEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          required
+                          disabled={updatesSubmitting}
+                        />
+
+                        <label className="celebration-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={updatesParticipate}
+                            onChange={(e) => setUpdatesParticipate(e.target.checked)}
+                            disabled={updatesSubmitting}
+                          />
+                          I might like to play music or participate
+                        </label>
+
+                        <label htmlFor="celebration-instrument">Notes (optional)</label>
+                        <input
+                          id="celebration-instrument"
+                          type="text"
+                          value={updatesInstrument}
+                          onChange={(e) => setUpdatesInstrument(e.target.value)}
+                          placeholder="Your name, band name, or anything you'd like us to know"
+                          disabled={updatesSubmitting}
+                        />
+
+                        {updatesError && (
+                          <div className="celebration-updates-error">{updatesError}</div>
+                        )}
+
+                        <button
+                          type="submit"
+                          className="celebration-updates-submit"
+                          disabled={updatesSubmitting}
+                        >
+                          {updatesSubmitting ? 'Sending...' : 'Get Updates'}
+                        </button>
+                      </form>
+                    )}
+                  </section>
                 </div>
               </ProtectedRoute>
             }

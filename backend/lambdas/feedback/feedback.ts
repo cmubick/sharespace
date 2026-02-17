@@ -12,6 +12,7 @@ interface FeedbackPayload {
   pageUrl?: string
   userAgent?: string
   timestamp?: string
+  subject?: string
 }
 
 export const handler = async (event: any) => {
@@ -56,7 +57,7 @@ export const handler = async (event: any) => {
       },
       Message: {
         Subject: {
-          Data: 'New JDF Memorial Site Feedback',
+          Data: payload.subject?.trim() || 'New JDF Memorial Site Feedback',
           Charset: 'UTF-8',
         },
         Body: {
