@@ -12,7 +12,8 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb'
-import { PassThrough, Readable } from 'stream'
+import { Readable } from 'stream'
+import * as fs from 'fs'
 import archiver from 'archiver'
 import path from 'path'
 import { createErrorResponse, createOptionsResponse, createSuccessResponse } from '../../shared/utils'
@@ -97,19 +98,11 @@ const scanAllPhotos = async (): Promise<MediaItem[]> => {
 }
 
 const buildArchive = async (items: MediaItem[]) => {
+  const tmpPath = '/tmp/photos.zip'
   const archiveStream = archiver('zip', { zlib: { level: 9 } })
-  const uploadStream = new PassThrough()
+  const output = fs.createWriteStream(tmpPath)
 
-  const uploadPromise = s3Client.send(
-    new PutObjectCommand({
-      Bucket: MEDIA_BUCKET,
-      Key: ARCHIVE_KEY,
-      Body: uploadStream,
-      ContentType: 'application/zip',
-    })
-  )
-
-  archiveStream.pipe(uploadStream)
+  archiveStream.pipe(output)
 
   for (const item of items) {
     try {
@@ -139,15 +132,23 @@ const buildArchive = async (items: MediaItem[]) => {
     }
   }
 
-  // Wait for archiver to finalize before upload completes
+  // Wait for archive file to be written completely
   await new Promise<void>((resolve, reject) => {
+    output.on('close', resolve)
+    output.on('error', reject)
     archiveStream.on('error', reject)
-    archiveStream.on('end', resolve)
     archiveStream.finalize()
   })
 
-  // Wait for S3 upload to complete
-  await uploadPromise
+  // Upload the completed file to S3
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: MEDIA_BUCKET,
+      Key: ARCHIVE_KEY,
+      Body: fs.createReadStream(tmpPath),
+      ContentType: 'application/zip',
+    })
+  )
 }
 
 export const handler = async (
