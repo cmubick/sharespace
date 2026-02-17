@@ -139,7 +139,14 @@ const buildArchive = async (items: MediaItem[]) => {
     }
   }
 
-  await archiveStream.finalize()
+  // Wait for archiver to finalize before upload completes
+  await new Promise<void>((resolve, reject) => {
+    archiveStream.on('error', reject)
+    archiveStream.on('end', resolve)
+    archiveStream.finalize()
+  })
+
+  // Wait for S3 upload to complete
   await uploadPromise
 }
 
