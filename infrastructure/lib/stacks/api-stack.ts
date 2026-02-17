@@ -203,8 +203,9 @@ export class ApiStack extends Construct {
         MEDIA_BUCKET: mediaBucket.bucketName,
         MEDIA_TABLE: mediaTable.tableName,
       },
-      timeout: cdk.Duration.seconds(60),
-      memorySize: 1024,
+      timeout: cdk.Duration.seconds(180),
+      memorySize: 3072,
+      ephemeralStorageSize: cdk.Size.mebibytes(8192),
     })
 
     const feedbackHandler = new lambda.Function(this, 'FeedbackHandler', {
