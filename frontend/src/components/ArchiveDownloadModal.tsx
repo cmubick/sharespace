@@ -7,32 +7,19 @@ interface ArchiveDownloadModalProps {
 }
 
 const ArchiveDownloadModal = ({ isOpen, onClose }: ArchiveDownloadModalProps) => {
-  const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [status, setStatus] = useState<'idle' | 'building' | 'ready' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-  const progressTimerRef = useRef<number | null>(null)
+  const pollingTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
 
-    setProgress(0)
-    setStatus('loading')
+    setStatus('idle')
     setErrorMessage('')
 
-    if (progressTimerRef.current) {
-      window.clearInterval(progressTimerRef.current)
-    }
-
-    progressTimerRef.current = window.setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) return prev
-        const increment = Math.floor(Math.random() * 6) + 2
-        return Math.min(prev + increment, 90)
-      })
-    }, 600)
-
-    const fetchArchive = async () => {
+    const startArchive = async () => {
       try {
+        // Trigger archive creation
         const response = await fetch(getApiUrl('/media/archive'), {
           method: 'POST',
           headers: {
@@ -45,36 +32,74 @@ const ArchiveDownloadModal = ({ isOpen, onClose }: ArchiveDownloadModalProps) =>
         }
 
         const data = await response.json()
-        const downloadUrl: string | undefined = data.downloadUrl
 
-        if (!downloadUrl) {
-          throw new Error('Download link unavailable')
+        if (data.status === 'ready' && data.url) {
+          // Archive is ready immediately
+          setStatus('ready')
+          triggerDownload(data.url)
+        } else if (data.status === 'building') {
+          // Archive is building, start polling
+          setStatus('building')
+          startPolling()
         }
-
-        setProgress(100)
-        setStatus('ready')
-
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.rel = 'noopener noreferrer'
-        link.click()
       } catch (err) {
-        console.error('Archive download error:', err)
+        console.error('Archive request error:', err)
         setStatus('error')
         setErrorMessage('Unable to prepare the download right now. Please try again.')
-      } finally {
-        if (progressTimerRef.current) {
-          window.clearInterval(progressTimerRef.current)
-        }
       }
     }
 
-    fetchArchive()
+    const checkStatus = async () => {
+      try {
+        const response = await fetch(getApiUrl('/media/archive/status'), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error('Unable to check archive status')
+        }
+
+        const data = await response.json()
+
+        if (data.status === 'ready' && data.url) {
+          stopPolling()
+          setStatus('ready')
+          triggerDownload(data.url)
+        }
+      } catch (err) {
+        console.error('Archive status check error:', err)
+        // Don't stop polling on error, keep trying
+      }
+    }
+
+    const startPolling = () => {
+      if (pollingTimerRef.current) {
+        window.clearInterval(pollingTimerRef.current)
+      }
+      pollingTimerRef.current = window.setInterval(checkStatus, 3000)
+    }
+
+    const stopPolling = () => {
+      if (pollingTimerRef.current) {
+        window.clearInterval(pollingTimerRef.current)
+        pollingTimerRef.current = null
+      }
+    }
+
+    const triggerDownload = (url: string) => {
+      const link = document.createElement('a')
+      link.href = url
+      link.rel = 'noopener noreferrer'
+      link.click()
+    }
+
+    startArchive()
 
     return () => {
-      if (progressTimerRef.current) {
-        window.clearInterval(progressTimerRef.current)
-      }
+      stopPolling()
     }
   }, [isOpen])
 
@@ -83,16 +108,25 @@ const ArchiveDownloadModal = ({ isOpen, onClose }: ArchiveDownloadModalProps) =>
   return (
     <div className="archive-modal-overlay" onClick={onClose}>
       <div className="archive-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Preparing download...</h2>
-        <p>This may take up to 30 seconds.</p>
-        <div className="archive-progress">
-          <div className="archive-progress-bar" style={{ width: `${progress}%` }} />
-        </div>
+        <h2>
+          {status === 'building' && 'Building archive...'}
+          {status === 'ready' && 'Download ready!'}
+          {status === 'error' && 'Error'}
+          {status === 'idle' && 'Preparing...'}
+        </h2>
+        {status === 'building' && (
+          <p>Creating archive of all photos. This may take up to 60 seconds.</p>
+        )}
+        {status === 'ready' && (
+          <p>Your download should start automatically.</p>
+        )}
         {status === 'error' && (
           <div className="archive-error">{errorMessage}</div>
         )}
-        {status === 'ready' && (
-          <div className="archive-success">Your download is ready.</div>
+        {status === 'building' && (
+          <div className="archive-progress">
+            <div className="archive-progress-bar archive-progress-bar-indeterminate" />
+          </div>
         )}
         <button className="archive-close" type="button" onClick={onClose}>
           Close

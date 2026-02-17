@@ -292,6 +292,24 @@
   transition: width 0.4s ease;
 }
 
+.archive-progress-bar-indeterminate {
+  width: 100%;
+  animation: indeterminate 1.5s ease-in-out infinite;
+  transform-origin: left;
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: scaleX(0.3) translateX(-100%);
+  }
+  50% {
+    transform: scaleX(0.3) translateX(100%);
+  }
+  100% {
+    transform: scaleX(0.3) translateX(300%);
+  }
+}
+
 .archive-error {
   color: #b91c1c;
   margin-bottom: 12px;

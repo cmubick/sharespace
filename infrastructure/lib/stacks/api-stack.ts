@@ -106,6 +106,15 @@ export class ApiStack extends Construct {
       })
     )
 
+    // Add Lambda invoke permissions for async archive builds
+    this.lambdaExecutionRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['lambda:InvokeFunction'],
+        resources: ['*'],
+      })
+    )
+
     // Create Lambda functions for handlers
     // Use the full dist directory which includes node_modules and compiled code
     const backendDistPath = path.resolve(path.join(__dirname, '../../../..', 'backend/dist'))
@@ -342,6 +351,20 @@ export class ApiStack extends Construct {
 
     const archiveResource = mediaResource.addResource('archive')
     archiveResource.addMethod('POST', archiveIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+      ],
+    })
+
+    const archiveStatusResource = archiveResource.addResource('status')
+    archiveStatusResource.addMethod('GET', archiveIntegration, {
       methodResponses: [
         {
           statusCode: '200',
