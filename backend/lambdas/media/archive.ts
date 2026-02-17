@@ -12,7 +12,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb'
-import { PassThrough } from 'stream'
+import { PassThrough, Readable } from 'stream'
 import archiver from 'archiver'
 import path from 'path'
 import { createErrorResponse, createOptionsResponse, createSuccessResponse } from '../../shared/utils'
@@ -126,7 +126,10 @@ const buildArchive = async (items: MediaItem[]) => {
 
       const fileName = buildArchiveFileName(item)
       const entryName = `${ARCHIVE_FOLDER}/${fileName}`
-      archiveStream.append(getResult.Body as NodeJS.ReadableStream, { name: entryName })
+      
+      // Convert SDK v3 stream to Node.js Readable
+      const bodyStream = getResult.Body as Readable
+      archiveStream.append(bodyStream, { name: entryName })
     } catch (err) {
       console.error('Failed to append file to archive', {
         mediaId: item.mediaId,
