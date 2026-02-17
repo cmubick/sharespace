@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "node scripts/prepare-lambda-deps.js && tsc && npm run copy:deps",
-    "copy:deps": "mkdir -p dist/node_modules && cp -r ../node_modules/* dist/node_modules/ && [ -d node_modules ] && cp -r node_modules/* dist/node_modules/ || true",
+    "copy:deps": "mkdir -p dist/node_modules && rsync -a --exclude='sharespace-infrastructure' --exclude='sharespace-backend' --exclude='sharespace' ../node_modules/ dist/node_modules/ && [ -d node_modules ] && cp -r node_modules/* dist/node_modules/ || true",
     "watch": "tsc --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",
